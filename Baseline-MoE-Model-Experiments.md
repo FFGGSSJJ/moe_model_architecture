@@ -1,8 +1,10 @@
 # Baseline MoE Model Experiments
 
 > **Megatron commit**: [https://github.com/swiss-ai/Megatron-LM/tree/merge-260109](https://github.com/swiss-ai/Megatron-LM/tree/merge-260109)
-**Datasets**: `/iopsstor/scratch/cscs/anowak/datasets/megatron/llama_tokenized/fineweb-edu-100B/fineweb-edu-100B_00002_tokens`
-**Image**: `/iopsstor/scratch/cscs/gfu/ce-images/megatron_deepep-aarch64.sqsh`
+>
+> **Datasets**: `/iopsstor/scratch/cscs/anowak/datasets/megatron/llama_tokenized/fineweb-edu-100B/fineweb-edu-100B_00002_tokens`
+>
+> **Image**: `/iopsstor/scratch/cscs/gfu/ce-images/megatron_deepep-aarch64.sqsh`
 
 ## 03/03/2026 Draft model experiment
 
