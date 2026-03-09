@@ -2,33 +2,26 @@
 
 > - **Megatron commit**: [https://github.com/swiss-ai/Megatron-LM/tree/merge-260109](https://github.com/swiss-ai/Megatron-LM/tree/merge-260109)
 > - **Datasets**: `/iopsstor/scratch/cscs/anowak/datasets/megatron/llama_tokenized/fineweb-edu-100B/fineweb-edu-100B_00002_tokens`
+> - **Dataset:** `/iopsstor/scratch/cscs/gfu/datasets/climbmix/hftokenized`
 >
 > - **Image**: `/iopsstor/scratch/cscs/gfu/ce-images/megatron_deepep-aarch64.sqsh`
 
-## 03/03/2026 Draft model experiment
 
-A draft model to make the experiment running and check:
 
-- [x]  deepep
-- model config
-  
-    ```json
-    {
-      "head_dim": 128,
-      "hidden_size": 2048,
-      "intermediate_size": 6144,
-      "moe_intermediate_size": 768,
-      "num_hidden_layers": 5,
-      "num_attention_heads": 32,
-      "num_key_value_heads": 4,
-      "num_experts": 64,
-      "num_experts_per_tok": 8,
-      "act": "swiglu"
-    }
-    ```
-    
+## 07/03 Baseline MoE Model Experiments OOM
 
-## 05/03/2026 Reference Baseline MoE Model experiment
+- https://wandb.ai/fuguan323-ethz/apertus_qwen_30b_a3b_nemotron
+
+  **Problem:** OOM after ~55 steps, reproducible
+
+  **Parallel Strategy**: DP2EP2PP4TP1, 8GPUs
+
+  - High memory pressure for gpu2 and gpu3
+  - Could be the results of ***load imbalance*** in MoE layer
+
+  ![baseline_mem_usage](./figs/baseline_mem_usage.png)
+
+## 05/03 Reference Baseline MoE Model experiment
 
 ### Model
 
@@ -82,6 +75,24 @@ A draft model to make the experiment running and check:
     
 - **Sbatch Script**: `/users/gfu/frameworks/Megatron-LM-sai/myscripts/apertus_qwen_30b_a3b_baseline.sh`
 
-### Experiments
+##### 
 
-TBU
+## 03/03 Draft model experiment
+
+A draft model to make the experiment running and check:
+
+- [x] deepep
+- model config
+
+	{
+	  "head_dim": 128,
+	  "hidden_size": 2048,
+	  "intermediate_size": 6144,
+	  "moe_intermediate_size": 768,
+	  "num_hidden_layers": 5,
+	  "num_attention_heads": 32,
+	  "num_key_value_heads": 4,
+	  "num_experts": 64,
+	  "num_experts_per_tok": 8,
+	  "act": "swiglu"
+	}
