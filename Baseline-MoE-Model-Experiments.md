@@ -2,10 +2,6 @@
 
 Documentations for baseline MoE model experiments.
 
-## Index
-
-[TOC]
-
 ## 09/03 Baseline MoE Model Experiments
 
 #### Exp1
