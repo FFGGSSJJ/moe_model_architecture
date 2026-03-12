@@ -2,6 +2,27 @@
 
 Documentations for baseline MoE model experiments.
 
+## 11/03 Baseline MoE Model Experiments cont'd
+
+> Due to the problem encountered with swiss-ai codebase:
+>
+> 1. Checkpoints loading failure
+> 2. A loss spike in this small model
+>
+> I switched to:
+>
+> - **Megatron** community version: https://github.com/NVIDIA/Megatron-LM/tree/core_v0.16.0
+> - **Alps3 Image**: jfrog.svc.cscs.ch/docker-group-csstaff/alps-images/ngc-pytorch:25.12-py3-alps3
+> - **NCCL All-gather** for EP communication
+
+- **Trial**: https://wandb.ai/fuguan323-ethz/apertus_qwen_30b_a3b_climbmix/runs/pfowa53u
+
+- Loss looks fine without spike. Present minor deviation from previous run.
+
+  <img src="./figs/baseline0311loss.png" alt="exploss2" style="zoom:50%;" />
+
+- Throughput improves a bit: 135 to 168 TFLOPs/GPU
+
 ## 09/03 Baseline MoE Model Experiments
 
 #### Exp1
