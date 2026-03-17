@@ -2,6 +2,17 @@
 
 Documentations for baseline MoE model experiments.
 
+## 13/03 Qwen-30B-A3B baseline MoE model
+
+- **Setup**: 8GPUs, TP1PP2EP4DP4
+- **Iteration**: ~9k
+- **Consumed token**: ~3.5B
+- **Throughput**: ~160 TLOPs/GPU
+
+<img src="./figs/baseline0313loss.png" alt="exploss2" style="zoom:50%;" />
+
+- Stable and presents no loss spike. 
+
 ## 12/03 Ckpt loading failure in Megatron
 
 > - **Megatron**: https://github.com/NVIDIA/Megatron-LM/tree/core_v0.16.0, [https://github.com/swiss-ai/Megatron-LM/tree/merge-260109](https://github.com/swiss-ai/Megatron-LM/tree/merge-260109)
@@ -38,6 +49,8 @@ After fix, the checkpoint loading works without OOM. And the memory trace is nor
   <img src="./figs/baseline0311loss.png" alt="exploss2" style="zoom:50%;" />
 
 - Throughput improves a bit: 135 to 168 TFLOPs/GPU
+  - The performance gain is purely due to use AllGather instead of AlltoAll
+- To be tested if the spike problem can be reproduced
 
 ## 09/03 Baseline MoE Model Experiments
 
