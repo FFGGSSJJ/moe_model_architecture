@@ -23,14 +23,10 @@ The baseline MoE experiments with Qwen3-30B-A3B is kind of in a mess due to all 
 
    - Fixed compute budget $C$: 
 
-     
-     $$
-     \begin{align}
+     $\begin{align*}
      & M = 6\Phi_{comp}\\
      & C = M\cdot D
-     \end{align}
-     $$
-     
+     \end{align*}$
 
      where $\Phi_{comp}$ is the parameter size that involved in computation, $M$ is the computational cost per token and $D$ is the number of tokens. 
 
