@@ -43,8 +43,8 @@ Following Kimi-2, we can adopt FP8 storage for insensitive activations: Inputs o
 
   - MoE layer activation memory estimation:
     - Assume balance routing: $\frac{2\cdot 4096 \cdot 12}{256} =384$ tokens/expert
-    - $size_{x,bf16} = 384 \cdot \frac{256}{4} \cdot 2048\cdot 2Byte =1.8GB$, $size_{x, fp8} = 0.9GB$
-    - $size_{a,bf16} = 384 \cdot \frac{256}{4} \cdot (512\cdot 2)\cdot 2Byte =0.9GB$, $size_{a,bf16} = 0.45GB$
+    - $size_{x,bf16} = 384 \cdot \frac{256}{4} \cdot 2048\cdot 2Byte \cdot 20 =1.8GB$, $size_{x, fp8} = 0.9GB$
+    - $size_{a,bf16} = 384 \cdot \frac{256}{4} \cdot (512\cdot 2)\cdot 2Byte \cdot 20 =0.9GB$, $size_{a,bf16} = 0.45GB$
     - ~1.3GB can be saved. By testing, it matches expectation:
 
 ​	<img src="./figs/fp8act_mem.png" alt="exploss2" style="zoom:50%;" />

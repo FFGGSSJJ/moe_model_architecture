@@ -55,15 +55,17 @@ The baseline MoE experiments with Qwen3-30B-A3B is kind of in a mess due to all 
 
 ## Dense to MoE experiments
 
-Prior work declares that: *an MoE model with a 3.1% activation ratio and an expert granularity of 12 will achieve over 7x computational efficiency under a 1e22 FLOPs compute budget*. 
+Prior work declares that: *an MoE model with a 3.1% activation ratio and an expert granularity of 12 will achieve **over 7x computational efficiency** under a 1e22 FLOPs compute budget*. 
 
-#### Setup
+### Setup
 
 - **Dense model**: 
-  - Apertus-8B with SwiGLU and Adam ([link](https://github.com/swiss-ai/pretrain-code/blob/main/pretraining/submit_apertus_8b.sh))
-  - 16 nodes, GBS2048, TP2, LR1.1e-4
 
-- **MoE model**: 
+  - Apertus-8B with SwiGLU and Adam ([link](https://github.com/swiss-ai/pretrain-code/blob/main/pretraining/submit_apertus_8b.sh))
+
+  - ###### 16 nodes, GBS2048, TP2, LR1.1e-4, seqlen4096
+
+- ##### **MoE model**: 
 
   ```
   --num-layers 20
@@ -79,8 +81,8 @@ Prior work declares that: *an MoE model with a 3.1% activation ratio and an expe
   ```
 
   - 16B-1.6B with SwiGLU and Adam, Non-embd Activated parameter = 1.07B
-  - $A = \frac{12 + 1}{256} = 5.1\%$, $G = \frac{2\cdot 2048}{512} = 8$
-  - 16 nodes, GBS1024, EP4, LR3.3e-4
+  - $A = \frac{12 + 1}{256+1} = 5.05\%$, $G = \frac{2\cdot 2048}{512} = 8$
+  - 16 nodes, GBS1024, EP4, LR3.3e-4, seqlen4096
 
 - **Compute Budget**
 
@@ -97,11 +99,80 @@ Prior work declares that: *an MoE model with a 3.1% activation ratio and an expe
   Given the current settings, we want to see: 
 
   - Will MoE model's loss surpass Dense model?
-  - If so, can this MoE model do better in loss?
+  - If so, can this MoE model do better in loss? (Stable + Faster)
   - Otherwise, how to modify the MoE model?
 
-#### Experiments
+### Experiments 1
 
 - After the first 12h:
 
 <img src="./figs/dtom_loss1.png" alt="exploss2" style="zoom:50%;" />
+
+- Based in what is observed:
+  - 16B-1.6B MoE model surpasses 8B dense model within the same amount of tokens
+  - As MoE model has a higher token throughput, MoE model is trained with more tokens
+  - Dense MFU (40%) is higher than MoE MFU (18%)
+- As shown below, with different LR, 16B-1.6B MoE models still surpass 8B dense model
+
+<img src="./figs/dtom_loss2.png" alt="exploss2" style="zoom:50%;" />
+
+### Experiments 2
+
+The better performance in lm loss can result from:
+
+- 16B-1.6B MoE model has a larger total parameter size then 8B dense model
+
+Then:
+
+- With a dense model of similar total parameter size (16B dense), can it achieve similar performance in loss
+- With an MoE model that has similar token throughput to 16B dense model, will it surpass the 16B dense model
+
+#### Exp Setup
+
+- **Dense Model**: 16B Dense
+
+  ```
+  --num-layers 44
+  --hidden-size 5120
+  --ffn-hidden-size 17408
+  --num-attention-heads 40
+  --num-query-groups 8
+  --tp 2
+  --mbs 2
+  --seql 4096
+  ```
+
+- **MoE Model**: 
+
+  - In our training infra, $\frac{MFU_{dense}}{MFU_{moe}}=2.2$. Given 16B computational parameter for dense model, MoE model will need roughly $\frac{16B}{2.2} = 7.2B$ for activated parameter. 
+  - By configuration, I setup a 80B-A6B MoE model (it is hard to setup a A7B MoE model while maintain a reasonable activation ratio/total model size)
+
+  ```
+  --num-layers 32
+  --hidden-size 3072
+  --ffn-hidden-size 9216
+  --moe-ffn-hidden-size 1024
+  --moe-shared-expert-intermediate-size 1024
+  --num-experts 256
+  --moe-router-topk 14
+  --ep 4
+  --pp 4
+  --mbs 2
+  --seql 4096
+  ```
+
+#### Exp Results
+
+1. **Dense-16B vs. MoE-80B-A6B**
+
+   - **Token Throughput**: $t_{dense16b}=4200\rm{token/sec/gpu}$, $t_{moe80ba6b}=5400\rm{token/sec/gpu}$
+     - Does not exactly match
+
+   - 
+
+
+
+
+
+
+
