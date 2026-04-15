@@ -74,6 +74,8 @@ Mock router is for performance inspection. The idea is to manipulate logit in ro
 
 
 
+## 3. MoE Layer with Legacy GroupGEMM
+
 
 
 

@@ -112,7 +112,8 @@ Prior work declares that: *an MoE model with a 3.1% activation ratio and an expe
   - 16B-1.6B MoE model surpasses 8B dense model within the same amount of tokens
   - As MoE model has a higher token throughput, MoE model is trained with more tokens
   - Dense MFU (40%) is higher than MoE MFU (18%)
-- As shown below, with different LR, 16B-1.6B MoE models still surpass 8B dense model
+- As shown below, 
+  - **with different LR and GBS, 16B-1.6B MoE models still surpass 8B dense model**
 
 <img src="./figs/dtom_loss2.png" alt="exploss2" style="zoom:50%;" />
 
@@ -173,24 +174,111 @@ Then:
 
 
 
+#### Exp 30/03/2026
+
+1. **MoE-80B-A6B with varing configs**
+
+<img src="./figs/dtom_loss0401-1.png" alt="exploss2" style="zoom:50%;" />
+
+2. **Dense-16B with varing configs**
+
+   <img src="./figs/dtom_loss0401-2.png" alt="exploss2" style="zoom:50%;" />
+
+3. **Dense-16B vs. MoE-80B-A6B**
+
+   - Purple for Dense and Red for MoE
+   - For all configs, MoE would surpass Dense at different points
+
+   <img src="./figs/dtom_loss0401-3.png" alt="exploss2" style="zoom:50%;" />
+
+5. **Dense-16B vs. MoE-16B-A1.6B**
+
+   - All with GBS1024. Varing LR
+   - Dense-16B and MoE-16B-A1.6B are **at least comparable** 
+     - Dense-16B has the trend to surpass MoE
+
+   <img src="./figs/dtom_loss0401-5.png" alt="exploss2" style="zoom:50%;" />
+
+6. **Dense-8B + MoE-16B-A1.6B vs. Dense-16B + MoE-80B-A6B**
+
+   - Start with the stable run that is less spiky for each model.
+
+   - The general trend is: MoE-80B-A6B > MoE-16B-1.6B ~ Dense-16B > Dense-8B
+     - This is what we are expecting
+     - But we **cannot draw a solid conclusion within 10B tokens**
+       - An estimation of token budget might be **~15B-20B** to find clear signal
+
+<img src="./figs/dtom_loss0401-4.png" alt="exploss2" style="zoom:50%;" />
+
+5. **Dense-8B + MoE-16B-A1.6B vs. Dense-16B + MoE-80B-A6B**
+   - Let's check more configurations [[link](https://wandb.ai/fuguan323-ethz/dense_to_moe_ablation/panel/l8i2031v8?nw=nwuserfuguan323)]
 
 
-#### Exp 30/03/202
 
-1. **Dense-16B, Dense-8B, MoE-16B-A1.6B, MoE-80B-A6B**
-   - **GBS1024, LR3.7e-4**
-   - All models present simialr loss trend and are spiky. Could be the results of large LR.
+# MoE Model Ablations
 
-​	<img src="./figs/dtom_loss0330.png" alt="exploss2" style="zoom:50%;" />
+Reference
 
-2. **Dense-16B, Dense-8B, MoE-16B-A1.6B, MoE-80B-A6B**
-   - **GBS1024, LR1.1e-4**
+## Theoratical Analysis
 
+We define something that we want to check. 
 
+- **Expert Granularity:** it is a measurement of how fine-grained the MoE layer is. Defined as $G=\frac{d_{model}}{d_{expert}}$
 
+  1. The common trend is to have fine-grained MoE layer. For instance, DeepSeek-V3 has $G = 7168/2048 =3.5$ and Qwen-3.5 has $G = 4096/1024 =4$. Some works [[ling](https://arxiv.org/abs/2507.17702v4), ] also indicate that larger G is better, and the optimal G is between 4 - 6. 
 
+  2. But the problem is, a smaller G is better for our infrastructure. Large expert can enable a higher training throughput when activated parameter size is the same.
 
+## MoE Expert Granularity Ablations 
 
+### Setup
+
+- **MoE-7B-A1.5B** with varying expert granularity 
+  - Megatron cannot define shared expert number. In this case, corse-grained MoE will have a slightly large activated parameter size.
+
+```
+"hidden_size": 2048,
+"moe_intermediate_size": 512/1024/2048,
+"num_hidden_layers": 16,
+"num_experts": 128/64/32,
+"num_experts_per_tok": 16/8/4,
+"shared_expert": 1,
+```
+
+- 4 nodes with EP2
+- GBS1280, LR7.3e-4, Muon Optimizer
+
+### Throughput Comparison
+
+| Model           | Throughput         |
+| --------------- | ------------------ |
+| MoE-7B-A1.5B-se | 20600 tokens/s/gpu |
+| MoE-7B-A1.5B-me | 26660 tokens/s/gpu |
+| MoE-7B-A1.5B-le | 28261 tokens/s/gpu |
+
+### Exp 08/04/2026
+
+- Red: G=4, Green: G=2, Blue: G=1
+- Single Expert weight.
+- Within 6.5B, corse-grained MoE has the lowest loss. It is against the common trend. 
+
+<img src="./figs/moeloss0409-1.png" alt="exploss2" style="zoom:50%;" />
+
+### Exp 09/04/2026
+
+- Disable shared expert to guarantee exactly same activated parameter size.
+
+### Exp10/04/2026
+
+- Use shared expert of the same size to guarantee exactly same activated parameter size.
+- Split Expert weight.
+
+<img src="./figs/moeloss0410-01.png" alt="exploss2" style="zoom:50%;" />
+
+### Exp 10/04/2026
+
+- Use Adam instead of Muon.
+- GBS2048, LR3.5e-4
 
 
 
