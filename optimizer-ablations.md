@@ -113,14 +113,6 @@ Router weight is a rectangular weight of shape $(d_{model},N_e)$  with $d/N = [8
 
 <img src="./figs/moeheatmap-0410-01.png" alt="exploss2" style="zoom:50%;" />
 
-460GB = W_e + G_e + O_e = 5 * W_e
-
-W_e = L * W, W = 460/5/20 = 4.6GB/layer
-
-e = 4.6/128 =0.0359 GB/expert
-
-d = 7168, d_e = 2048, e = d*d_e
-
 ### Exp 14/04/2026
 
 - **MoE-7B-A1.5B-le**
