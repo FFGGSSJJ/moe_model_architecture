@@ -19,9 +19,9 @@ We define the following symbols for MoE model:
 
 And the following for parallel strategy:
 
-- $\#_{gpu}$ = world size
-- DP = $\#_{gpu}$ / (TP * PP)
-- EDP = $\#_{gpu}$ / (EP * PP)
+- $N_{gpu}$ = world size
+- DP = $N_{gpu}$ / (TP * PP)
+- EDP = $N_{gpu}$ / (EP * PP)
 
 #### GPU RAM Analysis for MoE Layer (TBD)
 
