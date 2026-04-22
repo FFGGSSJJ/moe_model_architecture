@@ -74,11 +74,11 @@ We need to get **$M$ <u>at least larger than 1000 tokens</u>**. Larger $M$ means
 
 We assume $mbs=2$ and $seq=4096$, this makes the balance token number only relate to EP, TP and activated ratio. 
 
-- If TP=EP=4, $M = 8192 \cdot R_a \Rightarrow R_a \geq 12\%$
+- If TP=EP=4, $M = 8192 \cdot R_a \Rightarrow R_a \geq 12$%
 
-- if TP=2, EP=4, $M = 8192 \cdot 2 \cdot R_a \Rightarrow R_a \geq 6\%$
+- if TP=2, EP=4, $M = 8192 \cdot 2 \cdot R_a \Rightarrow R_a \geq 6$%
 
-The above discussion is built the assumption that we need 100% overlap efficiency. 
+The above discussion is built on the assumption that we need 100% overlap efficiency. 
 
 ## Implementation in Megatron
 
