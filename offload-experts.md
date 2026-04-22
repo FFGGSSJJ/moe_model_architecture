@@ -138,8 +138,13 @@ As we have built previously, the overlapping efficiency is mainly related to the
 <img src="./figs/offloading/offloading-pipeline-0422-01.png" alt="exploss2" style="zoom:50%;" />
 
 - **Results**:
+
   - **EP4 + Offloading:** 8700 tokens/s/gpu, 92% GPU RAM
   - **EP8:** 7000 tokens/s/gpu
+
+- Red for EP4-TP4+Offloading:
+
+  <img src="./figs/offloading/moe-40b-a4b.png" alt="exploss2" style="zoom:50%;" />
 
 #### 2. MoE-27B-A3B
 
@@ -151,3 +156,6 @@ As we have built previously, the overlapping efficiency is mainly related to the
 - **Results**:
   - **EP4 + Offloading:** 17000 tokens/s/gpu
   - **EP4:** 18100 tokens/s/gpu
+- Red for EP4-TP2 + Offloading
+
+<img src="./figs/offloading/moe-27b-a3b.png" alt="exploss2" style="zoom:50%;" />
