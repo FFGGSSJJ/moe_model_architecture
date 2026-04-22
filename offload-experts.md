@@ -92,16 +92,27 @@ We keep main gradient on the GPU RAM to avoid frequent H2D and D2H transfer duri
 
 ### Step1: Expert Weight Offloading
 
+> - Megatron: https://github.com/FFGGSSJJ/Megatron-LM/tree/moe_arch/dev
+> - groupgemm: https://github.com/FFGGSSJJ/grouped_gemm/tree/dev/grad_acc_fuse
+
+The majority of changes happened in Megatron to support expert weight offloading in a non-aggressive way. To enable better control of computation and support low-overhead batched h2d copy, a separate groupgemm repo is used.
+
 - Design Expert Layer autograd function
   - Loading-Computation Pipieline
-  - Batched-H2D Copy
+    - https://github.com/FFGGSSJJ/Megatron-LM/tree/moe_arch/dev
+  - Batched-H2D Copy for Lower CPU overhead.
+    - https://github.com/FFGGSSJJ/grouped_gemm/tree/dev/grad_acc_fuse
 - Modify `_ParamAndGradBuffer`: allocate CPU param_data buffer for expert parameters
 - Modify `DistributedOptimizer`: for parameter with CPU storage, allocate FP32 GPU storage for master weight
 - Modify `_ParamAndGradBucketGroup.start_param_sync()`: for CPU parameter, all-gather has to use NCCL. First copy CPU parameter to temporary GPU tensor, perform all-gather, and copy back to CPU tensor.
 
 ### Step2: Master Weight Offloading (TBD)
 
+TBD
+
 ### Step3: Optimizer States Offloading (TBD)
+
+TBD
 
 ## Verification of Implementation
 
