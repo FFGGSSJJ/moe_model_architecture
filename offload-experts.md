@@ -106,6 +106,14 @@ The majority of changes happened in Megatron to support expert weight offloading
 - Modify `DistributedOptimizer`: for parameter with CPU storage, allocate FP32 GPU storage for master weight
 - Modify `_ParamAndGradBucketGroup.start_param_sync()`: for CPU parameter, all-gather has to use NCCL. First copy CPU parameter to temporary GPU tensor, perform all-gather, and copy back to CPU tensor.
 
+**TODOs:**
+
+- [x] Support expert weight offloading e2e training (@fuguan)
+- [ ] Support checkpoint saving/loading with cpu expert weights in `OffloadingExpertsMLP` (@fuguan)
+- [ ] Support `delay-wgrad-compute` in `OffloadingExpertsMLP` (@fuguan)
+- [ ] Support `grad-all-reduce-overlap` and `param-all-gather-overlap `
+- [ ] Support Muon with offloading expert (should have supported)
+
 ### Step2: Master Weight Offloading (TBD)
 
 TBD
