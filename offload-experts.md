@@ -114,8 +114,15 @@ The majority of changes happened in Megatron to support expert weight offloading
 - [x] Support expert weight offloading e2e training (@fuguan)
 - [ ] Support checkpoint saving/loading with `torch_dist` with cpu expert weights (@fuguan)
   1. fully_parallel_save
-  2. async_save
+     1. Saving seems to be fine, no data communication needed. Parameter data that does not need to be saved by current rank will be simply discarded. 
+  2. **async_save**
+     1. async_save might cause data race: param -> copy to cpu tensor -> async save -> training. If param is already cpu tensor, the copy will not happen. The param data could be polluted by training.
+  3. fully_parallel_load
+     1. fully_parallel_load needs data broadcast between different ranks.
+        - Each DP rank holds a shard of ckpt data -> load local sharded ckpt into parameter storage -> exchange in dp group through NCCL -> copy into parameter weight.
+        - ~~exchange in dp group through NCCL could be problematic~~. After loading local shard, the exchange process will do the H2D transfer for NCCL communication. Need to check peak GPU memory consumption, but should be okay.
 - [ ] Support `delay-wgrad-compute` in `OffloadingExpertsMLP` (@fuguan)
+- [ ] Support activation recomputation and fp8 activation storage (@fuguan)
 - [ ] Support `grad-all-reduce-overlap` and `param-all-gather-overlap `
 - [ ] Support Muon with offloading expert (should have supported)
 
