@@ -29,6 +29,9 @@ And the following for parallel strategy:
 This part of analysis should provide guidance on the model size we are going to have. 
 
 - ${\rm{Mem}}_{e} = N_e \cdot H h_e\cdot 3 \cdot L / \rm{EP} \cdot 2Byte$
+- ${\rm{Mem}}_{master} = N_e \cdot H h_e\cdot 3 \cdot L / \rm{EP} \cdot 4Byte$
+- ${\rm{Mem}}_{act\_moe} = (A_e + AS_e + X_e + H_e) \cdot 2Byte$ in Bf16
+  - Based on $H_e = X_eW_{1,e} \in R^{T_e x 2 * H_{ffn}}, A_e = Swiglu(H_e) \in R^{T_e x H_{ffn}}, AS_e = A_E * Broadcast(S_e) \in R^{T_e x H_{ffn}}, Y_e = AS_e W_{2,e} \in R^{T_e x H}$, where $e$ is expert index, $T_e$ is token count for expert $e$, $H$ is hidden size, and $H_{ffn}$.
 - ${\rm{Mem}}_{grad} = N_e \cdot H h_e\cdot 3 \cdot L / \rm{EP} \cdot 4\rm{Byte}$
 - ${\rm{Mem}}_{adam} = (N_e \cdot H h_e\cdot 3 \cdot L) \cdot 3  / \rm{EP}/ \rm{EDP} \cdot 4\rm{Byte}$
 
