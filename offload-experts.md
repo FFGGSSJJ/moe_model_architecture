@@ -21,10 +21,10 @@ We define the following symbols for MoE model:
 And the following for parallel strategy:
 
 - $N_{gpu}$ = world size
-- DP = $N_{gpu}$ / (TP * PP)
-- EDP = $N_{gpu}$ / (EP * PP)
+- $DP$ = $N_{gpu}$ / $(TP \cdot PP)$
+- $EDP$ = $N_{gpu}$ / $(EP \cdot ETP \cdot PP)$
 
-#### GPU RAM Analysis for MoE Layer
+### GPU RAM Analysis for MoE Layer
 
 This part of analysis should provide guidance on the model size we are going to have. 
 
@@ -34,7 +34,7 @@ This part of analysis should provide guidance on the model size we are going to 
 
 Megatron by default uses ZeRO-1 to shard optimizer states. Hence at large scale, main gradient takes the majority of GPU RAM. If we offload all experts into CPU RAM, then we are bounded by gradient size and activation memory.
 
-#### Loading-Computation Overlap Efficiency
+### Loading-Computation Overlap Efficiency
 
 This part of analysis should provide guidance on parallel strategy and MoE model configuration.
 
@@ -101,9 +101,9 @@ We keep main gradient on the GPU RAM to avoid frequent H2D and D2H transfer duri
 The majority of changes happened in Megatron to support expert weight offloading in a non-aggressive way. To enable better control of computation and support low-overhead batched h2d copy, a separate groupgemm repo is used. The general approach is:
 
 - Design Expert Layer autograd function
-  - Loading-Computation Pipieline
+  - Loading-Computation Pipieline: `OffloadingExpertsMLP`
     - https://github.com/FFGGSSJJ/Megatron-LM/tree/moe_arch/dev
-  - Batched-H2D Copy for Lower CPU overhead.
+  - Batched-H2D Copy for Lower CPU overhead: `batched_h2d_async`
     - https://github.com/FFGGSSJJ/grouped_gemm/tree/dev/grad_acc_fuse
 - Modify `_ParamAndGradBuffer`: allocate CPU param_data buffer for expert parameters
 - Modify `DistributedOptimizer`: for parameter with CPU storage, allocate FP32 GPU storage for master weight
@@ -139,12 +139,15 @@ The majority of changes happened in Megatron to support expert weight offloading
 
 - [x] Verify functionality with VPP (@fuguan)
 
+- [x] Verify compatibility with Muon (@fuguan)
+
+  - [x] `dist_muon`
+    - `dist_muon` for now uses `Float16OptimizerWithFloat16Params` in `optimizer.py`, allocate FP32 GPU storage for master weight here.
+
 - [ ] Support `delay-wgrad-compute` in `OffloadingExpertsMLP` (@fuguan)
 
   - [ ] `delay-wgrad-compute`
     - Support should be straightforward. Will be done when we need it.
-
-- [ ] Support Muon with offloading expert (should have supported)
 
 ### Step2: Master Weight Offloading (TBD)
 
@@ -162,7 +165,8 @@ There will be mainly 2 part of verification: correctness and performance.
 
 We use MoE-7B-A1.5B to verify the correctness. 
 
-- Within 15B tokens, the LM loss does not deviate from baseline.
+- Within 15B tokens, the LM loss does not deviate from TE baseline.
+- With deterministic_mode, produce identical LM loss value compared to legacy_groupgemm baseline.
 
 ### Performance Verification
 
