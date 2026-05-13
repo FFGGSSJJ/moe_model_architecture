@@ -12,7 +12,30 @@ DeepSeek recipe:
 
 | Model Weight Quantization | Activation Quantization | FP8 Dtype   | SF Dtype |
 | ------------------------- | ----------------------- | ----------- | -------- |
-| (128, 128)                | (1, 128)/(128, 1)       | float8_e4m3 | float32  |
+| (128, 128)                | (1, 128) / (128, 1)     | float8_e4m3 | float32  |
+
+- Let input be a **standard Gaussian distributed tensor with N(0, 1)**
+- L2 Diff = $\frac{Norm(T - T_{ref})}{Norm(T_{ref})}$
+
+| FP8 Operation                                    | Relative Error |
+| ------------------------------------------------ | -------------- |
+| (1, 128) quantization                            | ~2.52%         |
+| (128, 128) quantization                          | ~2.73%         |
+| $x_{bf16} = a_{1*128,fp8} \cdot b_{128*128,fp8}$ | ~3.70%         |
+
+
+
+| FP8 FWD + BWD                       | Relative Error |
+| :---------------------------------- | -------------- |
+| $a = x \cdot W_1$                   | ~3.70%         |
+| $s = swiglu(a)$                     | ~5.26%         |
+| $y = s \cdot W_2$                   | ~6.33%         |
+| $da = swiglu_{bwd}(dy \cdot W_2^T)$ | ~6.89%         |
+| $dx = da \cdot W_1^T$               | ~6.89%         |
+| $dw2$                               | ~7.70%         |
+| $dw1$                               | ~7.70%         |
+
+
 
 ### Loading-Computation Overlap Efficiency
 
@@ -66,3 +89,75 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
             3. **D2H Copy**: **<u>reuse</u>** existing BF16 buffer to save quantized parameter
 
 ## Implementation Log
+
+#### 07/05/2026 Unit tests
+
+- Added unit tests for DeepGEMM
+
+#### 06/05/2026 Forward + Backward Passes
+
+- Implemented Forward + Backward Pass
+- Added unit tests for layer-level forward and backward
+
+#### 09/05/2026 Loss Deviation
+
+- Correctness verification with MoE-7B-1.6B
+- Loss deviates and crashes after ~8B tokens.
+
+<img src="./figs/offloading/fp8/loss-dev-0509.png" alt="exploss2" style="zoom:50%;" />
+
+#### 10/05/2026 Loss Deviation Cont'd
+
+- Launch FP8 training without offloading using both Adam and Muon
+- Both crashed after ~10B tokens
+  - This sudden crash does not look like an implementation error. It seems to be a data point that crashes the training.
+
+<img src="./figs/offloading/fp8/loss-dev-0510.png" alt="exploss2" style="zoom:50%;" />
+
+<img src="./figs/offloading/fp8/loss-dev-0510m.png" alt="exploss2" style="zoom:50%;" />
+
+#### 11/05/2026 Loss Deviation Cont'd
+
+- Launch FP8 training: 
+
+  | Training Setup                                 | Result   |
+  | ---------------------------------------------- | -------- |
+  | FP8 Fwd + BF16 Bwd                             | No Crash |
+  | FP8 Fwd + BF16 Dgrad + FP8 Wgrad               | No Crash |
+  | FP8 Fwd + FP8 Dgrad + BF16 Wgrad               | No Crash |
+  | FP8 Fwd + (FP8 Agrad + BF16 Xgrad) + FP8 Wgrad | Crashed  |
+
+- The loss does not crash. There are spikes, but it should be normal with Adam.
+  - There might be 2 causes:
+    - Numerical instability caused by FP8 training.
+    - Implementation problem that is triggered by unnormal logit.
+
+<img src="./figs/offloading/fp8/loss-dev-0511.png" alt="exploss2" style="zoom:50%;" />
+
+#### 12/05/2026 Loss Deviation Cont'd
+
+- Add monitors for grad_a and grad_x computation in backward pass.
+  - grad_a presents reasonable relative error (~3.3%)
+  - **<u>grad_x presents relative error that is too high (>= 17%)</u>**
+    - dx = **<u>cast(da)</u>** * cast(W1.T)
+    - Given that grad_a presents low error rate, the problem might be in the cast kernels.
+
+```
+25: [rank25]:   File "/capstor/scratch/cscs/gfu/frameworks/Megatron-LM/megatron/core/transformer/moe/experts_fp8_util.py", line 656, in backward
+25: [rank25]:     assert d < 0.20, f"grad_x diff norm {d:.2e} exceeds threshold"
+25: [rank25]:            ^^^^^^^^
+25: [rank25]: AssertionError: grad_x diff norm 2.00e-01 exceeds threshold
+```
+
+- Inspection in quantization kernel
+
+  Claude adds an **<u>epsilon value of 1e-4 that bounds the min maximum in a vector</u>**. It will cause problem if the tensor to be quantized contains really small values.
+
+  - `x_amax = tl.maximum(x_amax, 1e-4)`
+
+  After disabling epsilon value, the error of grad_x drops into normal range (~3.5%)
+
+- Verification (Blue for FP8):
+  - The training does not crash.
+
+<img src="./figs/offloading/fp8/loss-dev-0512.png" alt="exploss2" style="zoom:50%;" />
