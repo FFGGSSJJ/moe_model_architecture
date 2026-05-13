@@ -17,11 +17,11 @@ DeepSeek recipe:
 - Let input be a **standard Gaussian distributed tensor with N(0, 1)**
 - L2 Diff = $\frac{Norm(T - T_{ref})}{Norm(T_{ref})}$
 
-| FP8 Operation                                    | Relative Error |
-| ------------------------------------------------ | -------------- |
-| (1, 128) quantization                            | ~2.52%         |
-| (128, 128) quantization                          | ~2.73%         |
-| $x_{bf16} = a_{1*128,fp8} \cdot b_{128*128,fp8}$ | ~3.70%         |
+| FP8 Operation                                        | Relative Error |
+| ---------------------------------------------------- | -------------- |
+| (1, 128) quantization                                | ~2.52%         |
+| (128, 128) quantization                              | ~2.73%         |
+| $x_{bf16} = a_{(1,128),fp8} \cdot b_{(128,128),fp8}$ | ~3.70%         |
 
 
 
