@@ -43,6 +43,8 @@ The same analysis can be applied. With half model weights (FP8) and double compu
 
 ## Implementation in Megatron
 
+### General Design
+
 FP8 implementations will be tricky. 
 
 For now only TransformerEngine provides solution for FP8 computation in MoE and Attention layer, however to support offloading in MoE it will hard to hack TE code. It is a relatively easier approach to implement our own autograd function with FP8 support for MLP. The roadmap is:
@@ -87,6 +89,31 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
             1. **H2D Copy**: copy updated CPU parameter into GPU buffer
             2. **Quantization**: perform quantization on GPU
             3. **D2H Copy**: **<u>reuse</u>** existing BF16 buffer to save quantized parameter
+
+### TODOs
+
+- [x] **General design** (@fuguan)
+
+  - [x] DeepGEMM integration and unit tests `moe/utils.py`
+  - [x] Quantization kernels and unit tests `moe/fp8_jit.py`
+  - [x] Forward and Backward pass with/without offloading `moe/experts_offloading_fp8_util.py`
+  - [x] ExpertParamManager and In-place FP8 support `FP8ExpertsParameterManager`
+
+- [ ] **Checkpoint saving** (@fuguan)
+
+  With `FP8ExpertsParameterManager`, the BF16 tensor storage is replaced with quantized FP8 parameter. In this case, we cannot directly save checkpoints using parameter tensor. 
+
+- [ ] **Support activation recomputation**
+
+- [ ] **Muon optimizer with separate expert update**
+
+  With FP8 and Experts offloading, we allocate all experts with a single tensor such that we can have access to main_grad as a contiguous tensor. However, it will cause problem for Muon update, which requires a more granular approach to handle the individual expert parameters.
+
+- [ ] **Verify functionality and correctness with VPP**
+
+- [ ] **Quantization triton kernel optimization (optional)**
+
+- [ ] 
 
 ## Implementation Log
 
