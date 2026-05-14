@@ -182,7 +182,14 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
 
   - `x_amax = tl.maximum(x_amax, 1e-4)`
 
-  After disabling epsilon value, the error of grad_x drops into normal range (~3.5%)
+  We first inspect the data distribution of grad_a in real training. I capture grad_a tensors in different layers. Here is one of them:
+
+  <img src="./figs/offloading/fp8/grad_a_before_quant_75_histogram.png" alt="exploss2" style="zoom:50%;" />
+
+  - Most of grad_a tensors present **<u>super small</u>** values (mean <= 1e-12). 
+  - All the vectors will be quantized with the same scale factor (1e-4/448). The scaled values are too small to fall in the numerical range of fp8_e4m3.
+
+  After disabling epsilon value, the error of grad_x **<u>drops into normal range (~3.5%)</u>**
 
 - Verification (Blue for FP8):
   - The training does not crash.
