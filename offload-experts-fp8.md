@@ -45,6 +45,8 @@ The same analysis can be applied. With half model weights (FP8) and double compu
 
 ### General Design
 
+<img src="./figs/offloading/fp8/fp8.png" alt="exploss2" style="zoom:50%;" />
+
 FP8 implementations will be tricky. 
 
 For now only TransformerEngine provides solution for FP8 computation in MoE and Attention layer, however to support offloading in MoE it will hard to hack TE code. It is a relatively easier approach to implement our own autograd function with FP8 support for MLP. The roadmap is:
@@ -93,26 +95,24 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
 ### TODOs
 
 - [x] **General design** (@fuguan)
-
   - [x] DeepGEMM integration and unit tests `moe/utils.py`
   - [x] Quantization kernels and unit tests `moe/fp8_jit.py`
-  - [x] Forward and Backward pass with/without offloading `moe/experts_offloading_fp8_util.py`
+  - [x] Forward and Backward pass with/without offloading, and unit tests `moe/experts_offloading_fp8_util.py`
   - [x] ExpertParamManager and In-place FP8 support `FP8ExpertsParameterManager`
-
 - [ ] **Checkpoint saving** (@fuguan)
-
-  With `FP8ExpertsParameterManager`, the BF16 tensor storage is replaced with quantized FP8 parameter. In this case, we cannot directly save checkpoints using parameter tensor. 
-
-- [ ] **Support activation recomputation**
-
+  - With `FP8ExpertsParameterManager`, the BF16 tensor storage is replaced with quantized FP8 parameter. In this case, we cannot directly save checkpoints using parameter tensor. 
+- [x] **Support activation recomputation in MoE layer**
 - [ ] **Muon optimizer with separate expert update**
-
-  With FP8 and Experts offloading, we allocate all experts with a single tensor such that we can have access to main_grad as a contiguous tensor. However, it will cause problem for Muon update, which requires a more granular approach to handle the individual expert parameters.
-
+  - With FP8 and Experts offloading, we allocate all experts with a single tensor such that we can have access to main_grad as a contiguous tensor. However, it will cause problem for Muon update, which requires a more granular approach to handle the individual expert parameters.
 - [ ] **Verify functionality and correctness with VPP**
-
+  - Different PP scheduler functiosns have `first_micro_batch` flag to indicate when the iteration starts
+- [ ] **FP8 projection for attention block**
+  - TransformerEngine provides FP8 support for linear layer in attention block. We could either make TE FP8 linear layer work with our FP8 MoE layer, or design our own FP8 linear layer.
+- [ ] **Support `delay-wgrad-compute` in `OffloadingExpertsFP8GroupedMLP`**
+- [ ] **Refactor codebase**
+  - Some functionalities like triton kernels should be maintained in an separate library
+  - Some part of the code is hard-coded, i.e. the shape of weight or output tensors
 - [ ] **Quantization triton kernel optimization (optional)**
-
 - [ ] 
 
 ## Implementation Log
