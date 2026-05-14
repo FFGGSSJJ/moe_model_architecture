@@ -19,11 +19,11 @@ DeepSeek recipe:
 
 | FP8 Operation                                        | Relative Error |
 | ---------------------------------------------------- | -------------- |
-| (1, 128) quantization                                | ~2.52%         |
+| (1, 128)/(128, 1) quantization                       | ~2.52%         |
 | (128, 128) quantization                              | ~2.73%         |
 | $x_{bf16} = a_{(1,128),fp8} \cdot b_{(128,128),fp8}$ | ~3.70%         |
 
-
+- **NOTE**: for (128, 1) quantization, these is an epsilon value that works as the min maximum boundary for quantization. By testing, for a tensor with super small values, disabling the epsilon values can help with quantization accuracy for both `per_token_cast_to_fp8` and `per_channel_cast_to_fp8`. However, disabling it in per_channel_cast will cause the training to fail. See details in implementation logs.  
 
 | FP8 FWD + BWD                       | Relative Error |
 | :---------------------------------- | -------------- |
@@ -34,8 +34,6 @@ DeepSeek recipe:
 | $dx = da \cdot W_1^T$               | ~6.89%         |
 | $dw2$                               | ~7.70%         |
 | $dw1$                               | ~7.70%         |
-
-
 
 ### Loading-Computation Overlap Efficiency
 
@@ -102,6 +100,8 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
 - [ ] **Checkpoint saving** (@fuguan)
   - With `FP8ExpertsParameterManager`, the BF16 tensor storage is replaced with quantized FP8 parameter. In this case, we cannot directly save checkpoints using parameter tensor. 
 - [x] **Support activation recomputation in MoE layer**
+- [ ] **Figure out why epsilon boundary is needed for `per_channel_cast_to_fp8` kernel**
+  - See details below.
 - [ ] **Muon optimizer with separate expert update**
   - With FP8 and Experts offloading, we allocate all experts with a single tensor such that we can have access to main_grad as a contiguous tensor. However, it will cause problem for Muon update, which requires a more granular approach to handle the individual expert parameters.
 - [ ] **Verify functionality and correctness with VPP**
@@ -113,7 +113,6 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
   - Some functionalities like triton kernels should be maintained in an separate library
   - Some part of the code is hard-coded, i.e. the shape of weight or output tensors
 - [ ] **Quantization triton kernel optimization (optional)**
-- [ ] 
 
 ## Implementation Log
 
@@ -189,9 +188,15 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
   - Most of grad_a tensors present **<u>super small</u>** values (mean <= 1e-12). 
   - All the vectors will be quantized with the same scale factor (1e-4/448). The scaled values are too small to fall in the numerical range of fp8_e4m3.
 
-  After disabling epsilon value, the error of grad_x **<u>drops into normal range (~3.5%)</u>**
+  After disabling epsilon value in `per_token_cast_to_fp8 (1, 128)`, the error of grad_x computation **<u>drops into normal range (~3.5%)</u>**. 
 
-- Verification (Blue for FP8):
-  - The training does not crash.
+  - **However**, in `per_channel_cast_to_fp8 (128, 1)` which is needed for weight gradient computation, the epsilon value of 1e-4 is kept. Because by disabling it the training loss will deviate at the beginning as shown in the fig. 
+
+  - By testing, for a tensor with super small values, disabling the epsilon values can help with quantization accuracy for both `per_token_cast_to_fp8` and `per_channel_cast_to_fp8`. It is unknown why it degrades accuracy when removed from `per_channel_cast_to_fp8` during training. 
+
+    <img src="./figs/offloading/fp8/loss-dev-0513.png" alt="exploss2" style="zoom:50%;" />
+
+- **Verification (Blue for FP8) by removing epsilon boundary in `per_token_cast`:**
+  - The training does not crash for both Muon and Adam.
 
 <img src="./figs/offloading/fp8/loss-dev-0512.png" alt="exploss2" style="zoom:50%;" />
