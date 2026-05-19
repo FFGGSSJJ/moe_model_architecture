@@ -52,9 +52,9 @@ The math might not be rigorous, but for MoE training at large scale, All-Gather 
 
 As built in Preliminary section, the number of tokens assigned to each expert is related to EP. Hence the implications of large EP are:
 
-1. **Reduce** expert weight memory consumption $\rarr$ lower memory pressure
-2. **Increase** per-expert problem size $\rarr$ better hardware utilizations
-3. **Increase** EP communication size and range $\rarr$ longer A2A communication
+1. **Reduce** expert weight memory consumption $\rightarrow$ lower memory pressure
+2. **Increase** per-expert problem size $\rightarrow$ better hardware utilizations
+3. **Increase** EP communication size and range $\rightarrow$ longer A2A communication
 
 Large EP size hence brings the opportunity for perfect communication-computation overlap. In Megatron, it is called expert-parallel-overlap:
 
