@@ -100,6 +100,8 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
 - [ ] **Checkpoint saving** (@fuguan)
   - With `FP8ExpertsParameterManager`, the BF16 tensor storage is replaced with quantized FP8 parameter. In this case, we cannot directly save checkpoints using parameter tensor. 
 - [x] **Support activation recomputation in MoE layer**
+- [ ] **Optimize CPU-bound operations in MoE layer**
+  - There are many tensor cumsum/split/view operations dedicated for FP8. These operations present high CPU-overhead and should be optimized. 
 - [ ] **Figure out why epsilon boundary is needed for `per_channel_cast_to_fp8` kernel**
   - See details below.
 - [ ] **Muon optimizer with separate expert update**

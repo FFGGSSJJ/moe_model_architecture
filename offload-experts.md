@@ -205,3 +205,9 @@ As we have built previously, the overlapping efficiency is mainly related to the
 - Nsys Profile
 
   <img src="./figs/offloading/offloading-pipeline-0422-01.png" alt="exploss2" style="zoom:50%;" />
+
+| Models      |   EP4-TP4 + BF16   |  EP8-TP4 + BF16   | EP4-TP4 + BF16-Offloading | EP4-TP4 + FP8-Offloading |
+| ----------- | :----------------: | :---------------: | :-----------------------: | :----------------------: |
+| MoE-40B-A4B |        OOM         | 7000 tokens/s/gpu |     8700 tokens/s/gpu     |    9800 tokens/s/gpu     |
+| MoE-27B-A3B | 18100 tokens/s/gpu |         -         |    17000 tokens/s/gpu     |    17600 tokens/s/gpu    |
+
