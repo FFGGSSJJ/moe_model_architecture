@@ -5,6 +5,16 @@ The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-no
 - **Is 25GB/s good enough to train a large MoE model at scale?**
 - **Is offloading experts necessary?** (WIP)
 
+## TL;DR
+
+- **Is 25GB/s good enough to train a large MoE model at scale?**
+
+  No. At 25GB/s inter-node bandwidth, larger EP makes training communication-bounded on our GH200 cluster. While for EP8 the All-to-All (A2A) communication overhead can be mitigated via a carefully designed EP overlapping scheme and optimal model configurations, for EP16/EP32, the A2A communication costs are inevitably dominating. Hence, to guarantee a reasonable training throughput, we have to constrain the EP size to EP4 or EP8.
+
+- **Is offloading experts necessary?**
+
+  Probably yes if we want to go with a 700B MoE model. Large MoE models are constrained by memory at scale in our system due to the large number of in-flight micro-batches under VPP and large expert weights size under small EP (*As demonstrated in the 32-GPU experiments, increasing EP from 8 to 16 or 32 to reduce per-rank weight memory makes All-to-All communication the bottleneck and degrades the overall training performance*). Among them, offloading expert weights into CPU RAM has been proved to be a functional approach with reasonable training throughput.
+
 ## Preliminary
 
 We define the following symbols for an MoE model:
@@ -64,16 +74,16 @@ And it works in cooperation with Interleaved-1F1B:
 
 <img src="./figs/offloading/ep-overlap-1f1b.png" alt="exploss2" style="zoom:50%;" />
 
-With properly fine-tuned scheduleing plan and carefully configured MoE setup, there are spaces to achieve ideal overlapping at the cost of higher memory consumption. 
+With properly fine-tuned scheduleing plan and carefully configured MoE setup, there are spaces to achieve ideal overlapping at the cost of (slightly) higher memory consumption. 
 
 ## EP Overlap vs. MoE Offloading
 
-EP overlap seems to be a nice approach to mitigate the high All-to-All latency. But can we find the balanced point that can achieve a perfect overlap? 
+EP overlap seems to be a nice approach to mitigate the high All-to-All latency. But what is the balanced point that can achieve a perfect overlap? 
 
-Before answering this question, a point that we should build is what brings accleleration under the scenario of communication-computation overlapping:
+Before answering this question, it is essential to establish the foundational mechanisms of performance gain under a communication-computation overlapping scheme:
 
-1. The acceleration of **exposed** computations if computation dominates
-2. The decreased communication **volume** or increased communication **bandwidth** if communication dominates
+1. If computation dominates: the accelerated **exposed** computations
+2. If communication dominates: the reduced communication **volume** or increased communication **bandwidth**
 
 For this purpose, I configured a **46B-A4B** MoE model to test on **32-GPU** scale. 
 
@@ -103,7 +113,7 @@ Based on this model, I setup 3 model configurations that only differ in $N_a$:
 | MoE-46B-A4B | 28    | 6.25%            |
 | MoE-46B-A7B | 56    | 12.5%            |
 
-They are not nicely-look MoE models. The design of this model is to 'simulate' a chunk of a large MoE model under pipeline parallel *(it cannot really simulate because of the in-flight micro-batch number and ZeRO-1 sharding)*, and saturate GPU memory with EP4-TP4 setup. Hence, the model can only be trained with inter-node EP without offloading support.
+These model configurations do not represent a standard, end-to-end MoE architecture. The design of this model is to 'simulate' a chunk of a large MoE model under pipeline parallel *(it cannot really simulate because of the in-flight micro-batch number and ZeRO-1 sharding)*, and saturate GPU memory with EP4-TP4 setup. Hence, the model can only be trained with inter-node EP without offloading support.
 
 I launched different performance tests with varied setup:
 
