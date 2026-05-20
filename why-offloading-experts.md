@@ -5,6 +5,17 @@ The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-no
 - **Is 25GB/s good enough to train a large MoE model at scale?**
 - **Is offloading experts necessary?** (WIP)
 
+## Table of Contents
+
+- [TL;DR](#tldr)
+- [Preliminary](#preliminary)
+- [Expert Parallel](#expert-parallel)
+  - [Implications of Large EP](#implications-of-large-ep)
+- [EP Overlap vs. MoE Offloading](#ep-overlap-vs-moe-offloading)
+  - [Insights from result and profile](#insights-from-result-and-profile)
+    - [1. Large EP and EP Overlap](#1-large-ep-and-ep-overlap)
+    - [2. Large EP and MoE offloading](#2-large-ep-and-moe-offloading)
+
 ## TL;DR
 
 - **Is 25GB/s good enough to train a large MoE model at scale?**
