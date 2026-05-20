@@ -60,6 +60,10 @@ Large EP size hence brings the opportunity for perfect communication-computation
 
 <img src="./figs/offloading/ep-overlap.png" alt="exploss2" style="zoom:50%;" />
 
+And it works in cooperation with Interleaved-1F1B:
+
+<img src="./figs/offloading/ep-overlap-1f1b.png" alt="exploss2" style="zoom:50%;" />
+
 With properly fine-tuned scheduleing plan and carefully configured MoE setup, there are spaces to achieve ideal overlapping at the cost of higher memory consumption. 
 
 ## EP Overlap vs. MoE Offloading
@@ -203,16 +207,18 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
      - For **MoE-46B-A2B:** Offloading is **much slower** than EP8 + EP Overlap because of the small activation ratio. 
      - For **MoE-46B-A4B:** Offloading is **6.3% faster** than EP8 + EP Overlap with 3.4% more memory consumption. 
-     - For **MoE-46B-A7B:** Offloading is **40% fater** than EP8 + EP Overlap. 
+     - For **MoE-46B-A7B:** Offloading is **40% faster** than EP8 + EP Overlap. 
 
    - Hence, **at this scale, EP8 + EP Overlap for MoE-46B-A2B is the best approach to go with**. 
 
 2. **Is EP8 + EP Overlap the answer for large MoE training?**
 
+   Probably no. **Enabling EP overlap at a large scale is likely unfeasible with EP8, or even EP16. ** 
+
    - To answer this question, we need to clarify what are missing in the experiments above:
 
-     - Large number of In-flight micro-batches for VPP $\rarr$ increase activation memory
-     - ZeRO-1 sharding of optimizer states $\rarr$ reduce weight memory
+     - Large number of In-flight micro-batches for VPP $\rightarrow$ increase activation memory
+     - ZeRO-1 sharding of optimizer states $\rightarrow$ reduce weight memory
 
    - However, in large scale training with multiple PP stages, **activation memory takes the majority**.
 
@@ -221,99 +227,57 @@ A fair point to argue is that PP is not introduced here, and the results might n
    - We can roughly **estimate** the peak memory consumption at large scale with VPP
 
      - The estimation is not accurate, with -6% to +6% errors.
-     - **Model**: MoE-344B-A40B ([link](https://github.com/swiss-ai/cluster-health-tests/pull/6)) + Muon + Block-wise FP8
+     - **Model**: MoE-344B-A40B ([link](https://github.com/swiss-ai/cluster-health-tests/pull/6)) + Adam + Block-wise FP8
 
-     - **Parallelism**: WORLD=4096 TP=4 PP=16 VPP=2 **EP=32** DP=64 EDP=8
+     - **Parallelism**: WORLD=4096 TP=4 PP=16 VPP=2 **EP=8** DP=64 EDP=8
      - **MBS = 2**, Sequence Length = 4096
 
    ```
    ============================================================
     Total Parameters: 346.41B | Activated Parameters: 39.89B
-    Parallelism: WORLD=4096 TP=4 PP=16 VPP=2 EP=32 DP=64 EDP=8
+    Parallelism: WORLD=4096 TP=4 PP=16 VPP=2 EP=8 DP=64 EDP=32
     Layout: Et|(tt|)*30L
     Schedule: 1F1B-Interleaved
    ------------------------------------------------------------
     Per-rank totals (GB):
       Rank  In-flight    Vanilla        GPU        CPU
-         0         47      36.23      35.58       0.66
-         1         45      45.67      45.01       0.66
-         2         43      58.84      57.53       1.31
-         3         41      56.37      55.06       1.31
-         4         39      53.89      52.58       1.31
-         5         37      51.42      50.11       1.31
-         6         35      48.94      47.63       1.31
-         7         33      46.47      45.16       1.31
-         8         31      44.00      42.68       1.31
-         9         29      41.52      40.21       1.31
-        10         27      39.05      37.73       1.31
-        11         25      36.57      35.26       1.31
-        12         23      34.10      32.78       1.31
-        13         21      31.62      30.31       1.31
-        14         19      29.15      27.84       1.31
-        15         17      25.96      25.30       0.66
+         0         47      60.03      57.01       2.62
+         1         45      75.74      72.72       2.62
+         2         43      97.14      91.11       5.25
+         3         41      93.58      87.54       5.25
+         4         39      90.01      83.97       5.25
+         5         37      86.44      80.41       5.25
+         6         35      82.88      76.84       5.25
+         7         33      79.31      73.27       5.25
+         8         31      75.74      69.71       5.25
+         9         29      72.18      66.14       5.25
+        10         27      68.61      62.57       5.25
+        11         25      65.04      59.01       5.25
+        12         23      61.48      55.44       5.25
+        13         21      57.91      51.87       5.25
+        14         19      54.34      48.31       5.25
+        15         17      42.62      39.60       2.62
    ------------------------------------------------------------
     Total Memory Summary  (max / min / avg over 16 ranks)
       Vanilla GPU:
-        max (PP2):     58.84 GB | 61.29% of GH200
-        min (PP15):     25.96 GB | 27.04% of GH200
-        avg       :     42.49 GB | 44.26% of GH200
+        max (PP2):     97.14 GB | 101.19% of GH200
+        min (PP15):     42.62 GB | 44.40% of GH200
+        avg       :     72.69 GB | 75.72% of GH200
       Expert-Offload GPU:
-        max (PP2):     57.53 GB | 59.93% of GH200
-        min (PP15):     25.30 GB | 26.35% of GH200
-        avg       :     41.30 GB | 43.02% of GH200
+        max (PP2):     91.11 GB | 94.90% of GH200
+        min (PP15):     39.60 GB | 41.25% of GH200
+        avg       :     67.22 GB | 70.02% of GH200
       Expert-Offload CPU:
-        max (PP2):      1.31 GB
-        min (PP0):      0.66 GB
-        avg       :      1.19 GB
+        max (PP2):      5.25 GB
+        min (PP0):      2.62 GB
+        avg       :      4.76 GB
    ============================================================
    ```
 
-   - EP Overlap needs **extra memory**. To enable overlap, 2 activations have to stay in GPU for computation at the same time. Hence, we can **roughly simulate** the memory cost of EP Overlap with **MBS * 1.5 = 3**:
-
-     ```
-     ============================================================
-      Total Parameters: 346.41B | Activated Parameters: 39.89B
-      Parallelism: WORLD=4096 TP=4 PP=16 VPP=2 EP=32 DP=64 EDP=8
-      Layout: Et|(tt|)*30L
-      Schedule: 1F1B-Interleaved
-     ------------------------------------------------------------
-      Per-rank totals (GB):
-        Rank  In-flight    Vanilla        GPU        CPU
-           0         47      51.95      51.29       0.66
-           1         45      66.45      65.80       0.66
-           2         43      85.45      84.13       1.31
-           3         41      81.73      80.42       1.31
-           4         39      78.02      76.71       1.31
-           5         37      74.31      73.00       1.31
-           6         35      70.60      69.29       1.31
-           7         33      66.89      65.57       1.31
-           8         31      63.17      61.86       1.31
-           9         29      59.46      58.15       1.31
-          10         27      55.75      54.44       1.31
-          11         25      52.04      50.73       1.31
-          12         23      48.33      47.01       1.31
-          13         21      44.61      43.30       1.31
-          14         19      40.90      39.59       1.31
-          15         17      36.85      36.20       0.66
-     ------------------------------------------------------------
-      Total Memory Summary  (max / min / avg over 16 ranks)
-        Vanilla GPU:
-          max (PP2):     85.45 GB | 89.01% of GH200
-          min (PP15):     36.85 GB | 38.39% of GH200
-          avg       :     61.03 GB | 63.58% of GH200
-        Expert-Offload GPU:
-          max (PP2):     84.13 GB | 87.64% of GH200
-          min (PP15):     36.20 GB | 37.71% of GH200
-          avg       :     59.84 GB | 62.34% of GH200
-        Expert-Offload CPU:
-          max (PP2):      1.31 GB
-          min (PP0):      0.66 GB
-          avg       :      1.19 GB
-     ============================================================
-     ```
-
-     - This indicates that EP Overlap would probably work using EP32 with multiple PP stages. Even if it is possible, EP32 will make the All-to-All communication the bottleneck, as we have seen for EP16 in the 32-GPU experiments.
-       - This also explains why DeepSeek-V3 training works with DualPipe using EP64 but not EP8.
+   - EP Overlap needs **extra memory**. To enable overlap, each PP stage needs an **extra warm-up step** and hence slightly higher activation memory costs.
+     - Theoretically it increases peak in-flight micro-batch number by 1.
+     - This indicates that EP Overlap would probably work using EP16 or EP32 with multiple PP stages. Even if it is possible, EP16 or EP32 will make the All-to-All communication the bottleneck, as we have seen for EP16 in the 32-GPU experiments.
+       - This also partially explains why DeepSeek-V3 training works with DualPipe using EP64 but not EP8.
 
 3. **Does MoE offloading limits model size compared to larger EP?**
 
