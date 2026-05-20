@@ -12,9 +12,11 @@ The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-no
 - [Expert Parallel](#expert-parallel)
   - [Implications of Large EP](#implications-of-large-ep)
 - [EP Overlap vs. MoE Offloading](#ep-overlap-vs-moe-offloading)
+  - [Experiments Setup](#experiments-setup)
+  - [Experiments Results](#experiments-results)
   - [Insights from result and profile](#insights-from-result-and-profile)
     - [1. Large EP and EP Overlap](#1-large-ep-and-ep-overlap)
-    - [2. Large EP and MoE offloading](#2-large-ep-and-moe-offloading)
+    - [2. Large EP + EP Overlap and MoE offloading](#2-large-ep--ep-overlap-and-moe-offloading)
 
 ## TL;DR
 
@@ -96,6 +98,8 @@ Before answering this question, it is essential to establish the foundational me
 1. If computation dominates: the accelerated **exposed** computations
 2. If communication dominates: the reduced communication **volume** or increased communication **bandwidth**
 
+### Experiments Setup
+
 For this purpose, I configured a **46B-A4B** MoE model to test on **32-GPU** scale. 
 
 ```yaml
@@ -125,6 +129,8 @@ Based on this model, I setup 3 model configurations that only differ in $N_a$:
 | MoE-46B-A7B | 56    | 12.5%            |
 
 These model configurations do not represent a standard, end-to-end MoE architecture. The design of this model is to 'simulate' a chunk of a large MoE model under pipeline parallel *(it cannot really simulate because of the in-flight micro-batch number and ZeRO-1 sharding)*, and saturate GPU memory with EP4-TP4 setup. Hence, the model can only be trained with inter-node EP without offloading support.
+
+### Experiments Results
 
 I launched different performance tests with varied setup:
 
@@ -220,7 +226,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
    - Increase computation intensity such that it covers the communication cost
      - Hard to configure a reasonable model. Increasing model size or $N_a$ will both increase computation size and communication volume. 
 
-#### 2. Large EP and MoE offloading
+#### 2. Large EP + EP Overlap and MoE offloading
 
 1. **When does MoE offloading help?**
 
@@ -307,4 +313,3 @@ A fair point to argue is that PP is not introduced here, and the results might n
    - For this 32-GPU scale, **No**. Both offloading and EP8 + EP Overlap scheme **cost roughly the same amount of GPU memory**, implying roughly the same model size. 
 
    - Large scale experiment is necessary to verify it (WIP). 
-
