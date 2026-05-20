@@ -3,7 +3,7 @@
 The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-node EP communication slow. At this stage, we have roughly **25GB/s** inter-node All-to-All bandwidth after NCCL env var fixes, which hits the boundary of our network for now. The points I want to clarify and discuss are: 
 
 - **Is 25GB/s good enough to train a large MoE model at scale?**
-- **Is offloading experts necessary?**
+- **Is offloading experts necessary?** (WIP)
 
 ## Preliminary
 
@@ -109,23 +109,25 @@ I launched different performance tests with varied setup:
 
 **MoE-46B-A2B:**
 
-|                                     | **Throughput (tokens/s/gpu)** | **Memory** |  **MFU**  |
-| ----------------------------------- | :---------------------------: | :--------: | :-------: |
-| FP8 MoE + EP4-TP4 + MoE Offloading* |             12000             |    84%     |   17.2%   |
-| **BF16 + EP8-TP4 + EP Overlap**     |           **16100**           | **75.2%**  | **23.3%** |
-| BF16 + EP16-TP4 + EP Overlap        |             10900             |   59.0%    |   15.8%   |
+|                                                      | **Throughput (tokens/s/gpu)** | **Memory** |  **MFU**  |
+| ---------------------------------------------------- | :---------------------------: | :--------: | :-------: |
+| FP8 MoE + EP4-TP4 + MoE Offloading*                  |             12000             |    84%     |   17.2%   |
+| **FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading*** |           **15000**           | **63.3%**  | **21.6%** |
+| **BF16 + EP8-TP4 + EP Overlap**                      |           **16100**           | **75.2%**  | **23.3%** |
+| BF16 + EP16-TP4 + EP Overlap                         |             10900             |   59.0%    |   15.8%   |
 
 **MoE-46B-A4B:**
 
-|                                         | Throughput (tokens/s/gpu) |  Memory   |    MFU    |
-| --------------------------------------- | :-----------------------: | :-------: | :-------: |
-| BF16 + EP4-TP4                          |             -             |    OOM    |     -     |
-| BF16 + EP4-TP4 + MoE Offloading         |           8700            |   92.3%   |   20.6%   |
-| **FP8 MoE + EP4-TP4 + MoE Offloading*** |         **10000**         | **85.7%** | **23.0%** |
-| BF16 + EP8-TP4                          |           6830            |   71.2%   |   15.7%   |
-| **BF16 + EP8-TP4 + EP Overlap**         |         **9400**          | **82.3%** | **21.7%** |
-| FP8 + EP8-TP4 + EP Overlap              |           9450            | 81.0% (?) |   21.8%   |
-| BF16 + EP16-TP4 + EP Overlap            |           5790            |   65.5%   |   13.3%   |
+|                                                      | Throughput (tokens/s/gpu) |  Memory   |    MFU    |
+| ---------------------------------------------------- | :-----------------------: | :-------: | :-------: |
+| BF16 + EP4-TP4                                       |             -             |    OOM    |     -     |
+| BF16 + EP4-TP4 + MoE Offloading                      |           8700            |   92.3%   |   20.6%   |
+| **FP8 MoE + EP4-TP4 + MoE Offloading***              |         **10000**         | **85.7%** | **23.0%** |
+| **FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading*** |         **9060**          | **70.2%** | **20.9%** |
+| BF16 + EP8-TP4                                       |           6830            |   71.2%   |   15.7%   |
+| **BF16 + EP8-TP4 + EP Overlap**                      |         **9400**          | **82.3%** | **21.7%** |
+| FP8 + EP8-TP4 + EP Overlap                           |           9450            | 81.0% (?) |   21.8%   |
+| BF16 + EP16-TP4 + EP Overlap                         |           5790            |   65.5%   |   13.3%   |
 
 **MoE-46B-A7B:**
 
@@ -205,7 +207,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
      - $\rm{Overlap Efficiency =}\frac{T_{gemm}}{T_{load}} = M \cdot\frac{450}{989e3}$, where $M$ is related to EP, TP and $N_a/N_e$ (activation ratio). 
 
-     - For **MoE-46B-A2B:** Offloading is **much slower** than EP8 + EP Overlap because of the small activation ratio. 
+     - For **MoE-46B-A2B:** Offloading is slower than EP8 + EP Overlap under the same settings because of the small activation ratio. However, it **saves 12% of GPU memory while is only 6.8% slower.**
      - For **MoE-46B-A4B:** Offloading is **6.3% faster** than EP8 + EP Overlap with 3.4% more memory consumption. 
      - For **MoE-46B-A7B:** Offloading is **40% faster** than EP8 + EP Overlap. 
 
@@ -213,9 +215,9 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
 2. **Is EP8 + EP Overlap the answer for large MoE training?**
 
-   Probably no. **Enabling EP overlap at a large scale is likely unfeasible with EP8, or even EP16. ** 
+   Probably no. **Enabling EP overlap at a large scale for large model is likely unfeasible with EP8, or even EP16 due to the GPU memory limitations. ** 
 
-   - To answer this question, we need to clarify what are missing in the experiments above:
+   - To answer this question, we need to clarify what are missing in the experiments above to extend it to larger scale:
 
      - Large number of In-flight micro-batches for VPP $\rightarrow$ increase activation memory
      - ZeRO-1 sharding of optimizer states $\rightarrow$ reduce weight memory
@@ -226,7 +228,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
    - We can roughly **estimate** the peak memory consumption at large scale with VPP
 
-     - The estimation is not accurate, with -6% to +6% errors.
+     - *The estimation is not accurate, with -6% to +6% errors.*
      - **Model**: MoE-344B-A40B ([link](https://github.com/swiss-ai/cluster-health-tests/pull/6)) + Adam + Block-wise FP8
 
      - **Parallelism**: WORLD=4096 TP=4 PP=16 VPP=2 **EP=8** DP=64 EDP=8
