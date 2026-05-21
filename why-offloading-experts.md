@@ -175,7 +175,7 @@ I launched different performance tests with varied setup:
 
 > *NOTE: with FP8 MoE the computations are in FP8 for MLP and the activations in MoE layer are stored in FP8, which saves activation memory. 
 
-A fair point to argue is that PP is not introduced here, and the results might not be well extended to large scale with VPP. This will be discussed later. But for performance comparison: 
+A fair point to argue is that PP is not introduced here, and the results might not be well extended to large scale with VPP. This will be discussed later. But for relative performance comparison, the above experiments and analysis should hold to large scale: 
 
 - VPP is inter-device overlapping scheme, which does not interfere with EP overlap.
 - MoE offloading does not touch logics for VPP scheduling, and hence does not interfere with pipeline communications.
