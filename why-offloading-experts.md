@@ -190,7 +190,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
 2. **Does larger EP help?**
 
-   - From the number: **NO**, EP16 presents significant performance degradation at this scale for all the models, and we should not expect it to perform well at larger scale.
+   - From the number: **NO**, EP16 presents significant performance degradation at this scale for all the models, and we should not expect it to perform well at larger scale. 
 
    - From the profile of **MoE-46B-A4B**
 
@@ -224,11 +224,13 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
 7. **Will smaller $N_a$ help?**
 
-   - With current model size and expert granularity, **smaller $N_a$ achieves the best performance at EP8**.
+   - With current model size and expert granularity, **smaller $N_a$ achieves the best performance at EP8**. 
+
+     - *We still need to verify if small activation ratio is what we want for model performance.* 
 
    - From the profile, **MoE-46B-A2B** has **perfect overlapping** when balanced
 
-     - In this case, FP8 would help with exposed computations.
+     - In this case, FP8 would probably help with exposed computations.
 
      <img src="./figs/offloading/ep-8-a2b.png" alt="exploss2" style="zoom:50%;" />
 
@@ -257,7 +259,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
    Probably no. **Enabling EP overlap at a large scale for large model is likely unfeasible with EP8, or even EP16 due to the GPU memory limitations. ** 
 
-   - To answer this question, we need to clarify what are missing in the experiments above to extend it to larger scale:
+   - We need to clarify what are missing in the experiments above to extend it to larger scale:
 
      - Large number of In-flight micro-batches for VPP $\rightarrow$ increase activation memory
      - ZeRO-1 sharding of optimizer states $\rightarrow$ reduce weight memory
