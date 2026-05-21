@@ -84,7 +84,7 @@ As built in Preliminary section, the number of tokens assigned to each expert is
 2. **Increase** per-expert problem size $\rightarrow$ better hardware utilizations
 3. **Increase** EP communication size and range $\rightarrow$ longer A2A communication
 
-Large EP size hence brings the opportunity for perfect communication-computation overlap. In Megatron, it is called expert-parallel-overlap:
+Large EP size hence indicates a trade-off between computation and communication, and brings the opportunity for perfect communication-computation overlap. In Megatron, it is expert-parallel-overlap:
 
 <img src="./figs/offloading/ep-overlap.png" alt="exploss2" style="zoom:50%;" />
 
@@ -199,7 +199,11 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
      <img src="./figs/offloading/ep-16.png" alt="exploss2" style="zoom:50%;" />
 
-3. **Does FP8 help with EP Overlap?**
+3. **When does Large EP + EP Overlap help?**
+
+   *It depends on the activation ratio of our MoE model.* 
+
+4. **Does FP8 help with EP Overlap?**
 
    - From the number: **NO**, FP8 acclerates the training with only minor amount.
 
@@ -210,15 +214,15 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
      <img src="./figs/offloading/ep-8-fp8.png" alt="exploss2" style="zoom:50%;" />
 
-4. **Will larger model size help?**
+5. **Will larger model size help?**
    - Though I did not conduct such a test, the answer would probably be **NO**.
      - Larger model size means larger communicational volume and larger computational size at the same time
 
-5. **Will larger $N_a$ help?**
+6. **Will larger $N_a$ help?**
 
    - **NO**. Check **MoE-46B-A7B**, a large activation ratio does not help with MFU.
 
-6. **Will smaller $N_a$ help?**
+7. **Will smaller $N_a$ help?**
 
    - With current model size and expert granularity, **smaller $N_a$ achieves the best performance at EP8**.
 
@@ -228,7 +232,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
      <img src="./figs/offloading/ep-8-a2b.png" alt="exploss2" style="zoom:50%;" />
 
-7. **How to optimize for larger EP?**
+8. **How to optimize for larger EP?**
 
    - Reduce communication volume when bandwidth is fixed
      - NCCL has suppotted FP8 for non-reductive operations since v2.28 ([link](https://github.com/NVIDIA/nccl/releases/tag/v2.28.3-1)). However, whether FP8 p2p communication is available or stable is unknown.  
@@ -315,10 +319,10 @@ A fair point to argue is that PP is not introduced here, and the results might n
    - EP Overlap needs **extra memory**. To enable overlap, each PP stage needs an **extra warm-up step** and hence slightly higher activation memory costs.
      - Theoretically it increases peak in-flight micro-batch number by 1.
      - This indicates that EP Overlap would probably work using EP16 or EP32 with multiple PP stages. Even if it is possible, EP16 or EP32 will make the All-to-All communication the bottleneck, as we have seen for EP16 in the 32-GPU experiments.
-       - This also partially explains why DeepSeek-V3 training works with DualPipe using EP64 but not EP8.
+       - This also partially explains why DeepSeek-V3 training uses EP64 but not EP8 with DualPipe, even with DeepEP.
 
 3. **Does MoE offloading limits model size compared to larger EP?**
 
-   - For this 32-GPU scale, **No**. Both offloading and EP8 + EP Overlap scheme **cost roughly the same amount of GPU memory**, implying roughly the same model size. 
+   - For this 32-GPU scale, No. Both offloading and EP8 + EP Overlap scheme **cost roughly the same amount of GPU memory**, implying roughly the same model size. 
 
    - Large scale experiment is necessary to verify it (WIP). 
