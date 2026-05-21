@@ -264,7 +264,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
      - Large number of In-flight micro-batches for VPP $\rightarrow$ increase activation memory
      - ZeRO-1 sharding of optimizer states $\rightarrow$ reduce weight memory
 
-   - However, in large scale training with multiple PP stages, **activation memory takes the majority**.
+   - In large scale training with multiple PP stages, **activation memory takes the majority**.
 
      - **Peak in-flight micro-batch number = (*pp* - *rank* - 1) * 2 + (*vpp* - 1) * *pp* + 1**
 
@@ -328,3 +328,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
    - For this 32-GPU scale, No. Both offloading and EP8 + EP Overlap scheme **cost roughly the same amount of GPU memory**, implying roughly the same model size. 
 
    - Large scale experiment is necessary to verify it (WIP). 
+
+## 3-Node Pipeline Simulation
+
+WIP
