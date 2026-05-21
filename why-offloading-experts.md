@@ -1,4 +1,4 @@
-# Why offloading experts matter?
+# When offloading experts matters?
 
 The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-node EP communication slow. At this stage, we have roughly **25GB/s** inter-node All-to-All bandwidth after NCCL env var fixes, which hits the boundary of our network for now. The points I want to clarify and discuss are: 
 
