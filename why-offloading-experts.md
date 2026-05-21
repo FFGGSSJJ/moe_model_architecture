@@ -4,6 +4,7 @@ The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-no
 
 - **Is 25GB/s good enough to train a large MoE model at scale?**
 - **Is offloading experts necessary?** (WIP)
+- **Does offloading experts limit the model size?** (WIP)
 
 ## Table of Contents
 
@@ -27,6 +28,10 @@ The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-no
 - **Is offloading experts necessary?**
 
   Probably yes if we want to go with a 700B MoE model. Large MoE models are constrained by memory at scale in our system due to the large number of in-flight micro-batches under VPP and large expert weights size under small EP (*As demonstrated in the 32-GPU experiments, increasing EP from 8 to 16 or 32 to reduce per-rank weight memory makes All-to-All communication the bottleneck and degrades the overall training performance*). Among them, offloading expert weights into CPU RAM has been proved to be a functional approach with reasonable training throughput.
+  
+- **Does offloading experts limit the model size?**
+
+  TBU
 
 ## Preliminary
 
@@ -143,6 +148,8 @@ I launched different performance tests with varied setup:
 | **BF16 + EP8-TP4 + EP Overlap**                      |           **16100**           | **75.2%**  | **23.3%** |
 | BF16 + EP16-TP4 + EP Overlap                         |             10900             |   59.0%    |   15.8%   |
 
+<img src="./figs/offloading/plot_MoE_46B_A2B.png" alt="exploss2" style="zoom:50%;" />
+
 **MoE-46B-A4B:**
 
 |                                                      | Throughput (tokens/s/gpu) |  Memory   |    MFU    |
@@ -155,6 +162,8 @@ I launched different performance tests with varied setup:
 | **BF16 + EP8-TP4 + EP Overlap**                      |         **9400**          | **82.3%** | **21.7%** |
 | FP8 + EP8-TP4 + EP Overlap                           |           9450            | 81.0% (?) |   21.8%   |
 | BF16 + EP16-TP4 + EP Overlap                         |           5790            |   65.5%   |   13.3%   |
+
+<img src="./figs/offloading/plot_MoE_46B_A4B.png" alt="exploss2" style="zoom:50%;" />
 
 **MoE-46B-A7B:**
 
