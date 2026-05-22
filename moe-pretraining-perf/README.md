@@ -53,11 +53,15 @@ TOPK=8
 **Setup**
 
 - **Baseline**
+  - `VPP_LAYOUT="Et\\|\\(tt\\|\\)*6,L"`
   - MBS = 2, GBS = 1024, EP16-TP4-PP4, GPUs = 64
   - MBS = 2, GBS = 2048, EP16-TP4-PP4, GPUs = 128
+  
 - **Offloading**
+  - `VPP_LAYOUT="Et\\|\\(tt\\|\\)*6,L"`
   - MBS = 2, GBS = 1024, EP8-TP4-PP4, GPUs = 64
   - MBS = 2, GBS = 2048, EP8-TP4-PP4, GPUs = 128
+
 
 **Results with 64 GPUs**
 
