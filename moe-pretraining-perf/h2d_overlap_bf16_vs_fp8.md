@@ -1,10 +1,14 @@
 # H2D Overlap Benchmark: BF16 vs FP8 Comparison
 
-**Hardware**: NVIDIA GH200 120GB
-**Date**: 2026-05-28
-**NUMA binding**: `numactl --cpunodebind=0 --membind=0`
-**Config parameters**: C=CHUNK_SIZE (experts per transfer), H=HIDDEN_SIZE, FFN=MOE_FFN_HIDDEN_SIZE, T=TOKEN_PER_EXPERT
-**Chunk size mapping**: FFN=2048 -> C=4, FFN=4096 -> C=2
+- **Hardware**: NVIDIA GH200 120GB
+- **Date**: 2026-05-28
+- **NUMA binding**: `numactl --cpunodebind=0 --membind=0`
+- **Config parameters**: 
+    - C=CHUNK_SIZE (experts per transfer)
+    - H=HIDDEN_SIZE
+    - FFN=MOE_FFN_HIDDEN_SIZE
+    - T=TOKEN_PER_EXPERT
+- **Chunk size mapping**: FFN=2048 -> C=4, FFN=4096 -> C=2
 
 ---
 
