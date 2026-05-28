@@ -46,6 +46,7 @@ To guarantee that we align with the real training setup
 
 - Don't use bf16 for main-grads
 - Don't use precision-aware-optimizer
+- Don't use capacity factor
 
 ## MoE-117B-A11B-0
 
@@ -183,16 +184,19 @@ TOPK=4
 
 **Results with 512 GPUs**
 
-|                                                   | **Throughput (tokens/s/gpu)** | TFLOP/s/GPU | **Memory** |  **MFU**  |
-| ------------------------------------------------- | :---------------------------: | :---------: | :--------: | :-------: |
-| FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading   |              694              |     189     |   67.8%    |   18.7%   |
-| FP8 MoE* + EP16-TP4 + EP Overlap + MoE Offloading |            **770**            |   **200**   | **67.0%**  | **20.0%** |
-| BF16 + EP8-TP4 + EP Overlap                       |               -               |      -      |    OOM     |     -     |
-| BF16 + EP16-TP4 + EP Overlap                      |               -               |      -      |    OOM     |     -     |
-| BF16 + EP32-TP4 + EP Overlap                      |              627              |     152     |     -      |   15.4%   |
-| FP8* + EP16-TP4 + EP Overlap                      |               -               |      -      |    OOM     |     -     |
-| FP8 + EP32-TP4 + EP Overlap                       |              670              |     168     |     -      |   17.0%   |
+|                                                        | **Throughput (tokens/s/gpu)** | TFLOP/s/GPU | **Memory** |  **MFU**  |
+| ------------------------------------------------------ | :---------------------------: | :---------: | :--------: | :-------: |
+| FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading        |              694              |     189     |   67.8%    |   18.7%   |
+| FP8 MoE* + EP16-TP4 + EP Overlap + MoE Offloading      |            **772**            |   **200**   | **67.0%**  | **20.0%** |
+| FP8 MoE + EP16-TP4 + EP Overlap + MoE Offloading$^{1}$ |              785              |     202     |   74.5%    |   20.4%   |
+| BF16 + EP8-TP4 + EP Overlap                            |               -               |      -      |    OOM     |     -     |
+| BF16 + EP16-TP4 + EP Overlap                           |               -               |      -      |    OOM     |     -     |
+| BF16 + EP32-TP4 + EP Overlap                           |              627              |     152     |   81.2%    |   15.4%   |
+| FP8* + EP16-TP4 + EP Overlap                           |               -               |      -      |    OOM     |     -     |
+| FP8 + EP32-TP4 + EP Overlap                            |              670              |     168     |   80.0%    |   17.0%   |
 
+> $^1$: this setup disable an activation recomputation in MoE layer.
+>
 > *NOTE: FP8 MoE only applies FP8 on MoE layer with offloading support.
 >
 > *NOTE: Transformer Engine FP8 implementations does not save memory consumption for some reason.
