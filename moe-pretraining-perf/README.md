@@ -1,5 +1,21 @@
 # MoE Pre-training Performance
 
+## Preliminary
+
+We need a target for the performance we expect to train a large MoE model. 
+
+Assume we are going to train a 670B MoE model, and according to data team, we have roughly 15T - 20T tokens for pre-training. Let's take 17.5T as the mean value:
+
+Given 4096 GPUs and 3 months:
+
+$\rm{TokenThroughput} = \frac{17.5e12}{4096 \cdot 90 \cdot 24 \cdot 3600} = 550\ tokens/s/gpu$
+
+This is the expected average token thourghput in real training, and for optimal balance throughput with `--force-load-balancing`:
+
+$\rm{TokenThroughput'} = \frac{550}{0.8} = 687\ tokens/s/gpu$, where 0.8 is a penalty factor to compensate for the gap between real training throughput and balanced throughput in test. This value is observed in 30B-A3B training.
+
+Hence, we need **at least 687 tokens/s/gpu** in the performance tests for a 670B MoE model. 
+
 ## General Setup
 
 ```
@@ -122,14 +138,16 @@ TOPK=4
 
 **Results with 512 GPUs**
 
-|                                                       | **Throughput (tokens/s/gpu)** | TFLOP/s/GPU | **Memory** |  **MFU**  |
-| ----------------------------------------------------- | :---------------------------: | :---------: | :--------: | :-------: |
-| FP8 MoE + EP4-TP4 + MoE Offloading-1                  |              700              |     202     |     -      |   20.4%   |
-| **FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading-1** |            **765**            |   **221**   |   59.5%    | **22.5%** |
-| FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading-2     |              800              |     231     |   80.0%    |   23.3%   |
-| **FP8 + EP4-TP4***                                    |            **879**            |    218.9    |     -      | **22.1%** |
+|                                                   | **Throughput (tokens/s/gpu)** | TFLOP/s/GPU | **Memory** |  **MFU**  |
+| ------------------------------------------------- | :---------------------------: | :---------: | :--------: | :-------: |
+| FP8 MoE + EP4-TP4 + MoE Offloading-1              |              700              |     202     |     -      |   20.4%   |
+| FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading-1 |            **765**            |   **221**   |   59.5%    | **22.5%** |
+| FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading-2 |              800              |     231     |   80.0%    |   23.3%   |
+| BF16 + EP8-TP4 + EP Overlap                       |                               |             |            |           |
+| FP8 + EP4-TP4*                                    |            **879**            |    218.9    |     -      | **22.1%** |
+| FP8 + EP8-TP4 + EP Overlap                        |                               |             |            |           |
 
-> ***NOTE**: It is with BF16 main-grad + precision aware optimizer, and the numbers have to be reverified
+> ***NOTE**: It is with BF16 main-grad + precision aware optimizer
 
 ## MoE-670B-A40B
 
@@ -165,10 +183,16 @@ TOPK=4
 
 **Results with 512 GPUs**
 
-|                                                      | **Throughput (tokens/s/gpu)** | TFLOP/s/GPU | **Memory** |  **MFU**  |
-| ---------------------------------------------------- | :---------------------------: | :---------: | :--------: | :-------: |
-| FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading      |              694              |     200     |   67.8%    |   20.2%   |
-| **FP8 MoE + EP16-TP4 + EP Overlap + MoE Offloading** |            **712**            |   **205**   | **67.0%**  | **20.8%** |
-| BF16 + EP8-TP4 + EP Overlap                          |               -               |      -      |    OOM     |     -     |
-| BF16 + EP16-TP4 + EP Overlap                         |               -               |      -      |    OOM     |     -     |
-| FP8 + EP16-TP4 + EP Overlap                          |                               |             |            |           |
+|                                                   | **Throughput (tokens/s/gpu)** | TFLOP/s/GPU | **Memory** |  **MFU**  |
+| ------------------------------------------------- | :---------------------------: | :---------: | :--------: | :-------: |
+| FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading   |              694              |     189     |   67.8%    |   18.7%   |
+| FP8 MoE* + EP16-TP4 + EP Overlap + MoE Offloading |            **770**            |   **200**   | **67.0%**  | **20.0%** |
+| BF16 + EP8-TP4 + EP Overlap                       |               -               |      -      |    OOM     |     -     |
+| BF16 + EP16-TP4 + EP Overlap                      |               -               |      -      |    OOM     |     -     |
+| BF16 + EP32-TP4 + EP Overlap                      |              627              |     152     |     -      |   15.4%   |
+| FP8* + EP16-TP4 + EP Overlap                      |               -               |      -      |    OOM     |     -     |
+| FP8 + EP32-TP4 + EP Overlap                       |              670              |     168     |     -      |   17.0%   |
+
+> *NOTE: FP8 MoE only applies FP8 on MoE layer with offloading support.
+>
+> *NOTE: Transformer Engine FP8 implementations does not save memory consumption for some reason.
