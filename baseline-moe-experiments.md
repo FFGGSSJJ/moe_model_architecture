@@ -17,12 +17,12 @@ Documentations for first step baseline MoE model experiments.
 
 <img src="./figs/baseline0313loss.png" alt="exploss2" style="zoom:50%;" />
 
-- Stable and presents no loss spike. 
+- Stable and presents no loss spike.
 
 ## 12/03 Ckpt loading failure in Megatron
 
 > - **Megatron**: https://github.com/NVIDIA/Megatron-LM/tree/core_v0.16.0, [https://github.com/swiss-ai/Megatron-LM/tree/merge-260109](https://github.com/swiss-ai/Megatron-LM/tree/merge-260109)
-> - **Problems:** 
+> - **Problems:**
 >   There are 2 problems
 >   1. When `--precision-aware-optimizer` is enabled, this version of Megatron will save Optimizer States with an additional bool field `padding`. However in`megatron/core/optimizer/distrib_optimizer.py`, the function `_set_main_param_and_optimizer_states` expects `tensors` to contains only 3 fields. But what the saved tensor has an extra field called `padding` which is a bool type, and it causes error in when calling `set_scaled_state` because `padding` is not a tensor.
 >   2. When loading optimizer states from checkpoints, the memory cost is unexpectedly large and could cause OOM.
@@ -117,7 +117,7 @@ After fix, the checkpoint loading works without OOM. And the memory trace is nor
 ### Model
 
 - **Qwen3-30B-A3B**
-  
+
     ```json
     {
       "attention_bias": false,
@@ -138,7 +138,7 @@ After fix, the checkpoint loading works without OOM. And the memory trace is nor
       "act": "swiglu"**
     }
     ```
-    
+
     - traditional GQA (4/32)
     - standard MoE sparsity (8/128)
     - reasonable model size
@@ -157,13 +157,13 @@ After fix, the checkpoint loading works without OOM. And the memory trace is nor
         - Weight + optimizer = 44.18GB
         - Activation = 54.97GB
         - MoE activation recompute
-        
+
         ```
         6: [Rank 6] (after 2 iterations) memory (MB) | allocated: 53199.095703125 | **max allocated: 84019.3681640625** | reserved: 84732.0 | max reserved: 84732.0
         2: [Rank 2] (after 2 iterations) memory (MB) | allocated: 50314.07666015625 | **max allocated: 81835.0830078125** | reserved: 82324.0 | max reserved: 82324.0
         4: [Rank 4] (after 2 iterations) memory (MB) | allocated: 50317.25390625 | **max allocated: 71306.03662109375** | reserved: 71744.0 | max reserved: 71744.0
         ```
-    
+
 - **Sbatch Script**: `/users/gfu/frameworks/Megatron-LM-sai/myscripts/apertus_qwen_30b_a3b_baseline.sh`
 
 ## 03/03 Draft model experiment

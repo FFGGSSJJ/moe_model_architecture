@@ -4,14 +4,14 @@ The baseline MoE experiments with Qwen3-30B-A3B is kind of in a mess due to all 
 
 - **For the original Qwen3-30B-A3B experiments:**
 
-  - Continue the experiment but with a focus more on the performance side. 
+  - Continue the experiment but with a focus more on the performance side.
 
 - **For the exploration of MoE model:**
 
-  I want to follow the prior works to understand and verify the scaling law for MoE models. 
+  I want to follow the prior works to understand and verify the scaling law for MoE models.
 
   - A dense model (Apertus -8B or Qwen3-8B). The dense model will be used to verify the MFU/loss.
-  - A comparable MoE model using the scaling law from the prior work. The MoE model will be configured carefully, and to see if it can surpass the dense baseline. 
+  - A comparable MoE model using the scaling law from the prior work. The MoE model will be configured carefully, and to see if it can surpass the dense baseline.
 
 ## Theoratical analysis
 
@@ -26,24 +26,22 @@ The baseline MoE experiments with Qwen3-30B-A3B is kind of in a mess due to all 
      - LM loss: should be the easiest to observe.
      - Downstream task
 
-   - **Fixed compute budget $C$:** 
+   - **Fixed compute budget $C$:**
 
-     
      $$
      \begin{align}
      & M = 6\Phi_{comp}\\
      & C = M\cdot D
      \end{align}
      $$
-     
 
      where $\Phi_{comp}$ is the parameter size that involved in computation, $M$ is the computational cost per token and $D$ is the number of tokens. A typical approach in ablations woule be using a fixed compute budget for MoE and dense models. Assume a **fixed compute budget of $10^{21}$ FLOPs**, with 8B dense model and 30B-A3B MoE model. We have the following estimations:
 
      - $D_{dense} = \frac{10^{21}}{6\cdot8e9} = 21B$, $D_{moe} = \frac{10^{21}}{6\cdot3e9} = 56B$
 
-   - **Fixed wall time $T$:** 
+   - **Fixed wall time $T$:**
 
-     The calculations above give approximations based on fixed $C$. In practice, even though MoE requires lower computations, the throughput does not match expecations. By testing, we have practical token throughputs given 16GPUs for 8B dense model and 30B-A3B MoE model: 
+     The calculations above give approximations based on fixed $C$. In practice, even though MoE requires lower computations, the throughput does not match expecations. By testing, we have practical token throughputs given 16GPUs for 8B dense model and 30B-A3B MoE model:
 
      - $t_{dense} = 99620\ \rm{tokens/s}$, $t_{moe} = 137600\ \rm{tokens/s}$
      - $T_{dense} = \frac{21B}{99260} = 58h$, $T_{moe} = \frac{56B}{137600}=113h$
@@ -55,17 +53,17 @@ The baseline MoE experiments with Qwen3-30B-A3B is kind of in a mess due to all 
 
 ## Dense to MoE experiments
 
-Prior work declares that: *an MoE model with a 3.1% activation ratio and an expert granularity of 12 will achieve **over 7x computational efficiency** under a 1e22 FLOPs compute budget*. 
+Prior work declares that: *an MoE model with a 3.1% activation ratio and an expert granularity of 12 will achieve **over 7x computational efficiency** under a 1e22 FLOPs compute budget*.
 
 ### Setup
 
-- **Dense model**: 
+- **Dense model**:
 
   - Apertus-8B with SwiGLU and Adam ([link](https://github.com/swiss-ai/pretrain-code/blob/main/pretraining/submit_apertus_8b.sh))
 
   - ###### 16 nodes, GBS2048, TP2, LR1.1e-4, seqlen4096
 
-- ##### **MoE model**: 
+- ##### **MoE model**:
 
   ```
   --num-layers 20
@@ -87,7 +85,7 @@ Prior work declares that: *an MoE model with a 3.1% activation ratio and an expe
 - **Compute Budget**
 
   - $\frac{M_{dense}}{M_{moe}} = 5$, it is less than the declaration but should be good for verification
-  - If we fix $C = 10^{21}$FLOPs: 
+  - If we fix $C = 10^{21}$FLOPs:
     - $D_{dense} = 21B$, $D_{moe} = 104B$
     - $T_{dense} = \frac{21B}{99260} = 58h$, $T_{moe} = \frac{104B}{300800}=96h$
   - If we fix $T = 12h$
@@ -96,7 +94,7 @@ Prior work declares that: *an MoE model with a 3.1% activation ratio and an expe
 
 - **What to expect?**
 
-  Given the current settings, we want to see: 
+  Given the current settings, we want to see:
 
   - Will MoE model's loss surpass Dense model?
   - If so, can this MoE model do better in loss? (Stable + Faster)
@@ -112,7 +110,7 @@ Prior work declares that: *an MoE model with a 3.1% activation ratio and an expe
   - 16B-1.6B MoE model surpasses 8B dense model within the same amount of tokens
   - As MoE model has a higher token throughput, MoE model is trained with more tokens
   - Dense MFU (40%) is higher than MoE MFU (18%)
-- As shown below, 
+- As shown below,
   - **with different LR and GBS, 16B-1.6B MoE models still surpass 8B dense model**
 
 <img src="./figs/dtom_loss2.png" alt="exploss2" style="zoom:50%;" />
@@ -143,9 +141,9 @@ Then:
   --seql 4096
   ```
 
-- **MoE Model**: 
+- **MoE Model**:
 
-  - In our training infra, $\frac{MFU_{dense}}{MFU_{moe}}=2.2$. Given 16B computational parameter for dense model, MoE model will need roughly $\frac{16B}{2.2} = 7.2B$ for activated parameter. 
+  - In our training infra, $\frac{MFU_{dense}}{MFU_{moe}}=2.2$. Given 16B computational parameter for dense model, MoE model will need roughly $\frac{16B}{2.2} = 7.2B$ for activated parameter.
   - By configuration, I setup a 80B-A6B MoE model (it is hard to setup a A7B MoE model while maintain a reasonable activation ratio/total model size)
 
   ```
@@ -164,15 +162,13 @@ Then:
 
 #### Exp 29/03/2026
 
-1. **Dense-16B vs. MoE-80B-A6B**, 
+1. **Dense-16B vs. MoE-80B-A6B**,
 
    - **GBS2048, LR1.1e-4**
 
    - **Token Throughput**: $t_{dense16b}=4200\rm{token/sec/gpu}$, $t_{moe80ba6b}=5200\rm{token/sec/gpu}$
 
    <img src="./figs/dtom_loss0329.png" alt="exploss2" style="zoom:50%;" />
-
-
 
 #### Exp 30/03/2026
 
@@ -194,7 +190,7 @@ Then:
 5. **Dense-16B vs. MoE-16B-A1.6B**
 
    - All with GBS1024. Varing LR
-   - Dense-16B and MoE-16B-A1.6B are **at least comparable** 
+   - Dense-16B and MoE-16B-A1.6B are **at least comparable**
      - Dense-16B has the trend to surpass MoE
 
    <img src="./figs/dtom_loss0401-5.png" alt="exploss2" style="zoom:50%;" />
@@ -213,27 +209,25 @@ Then:
 5. **Dense-8B + MoE-16B-A1.6B vs. Dense-16B + MoE-80B-A6B**
    - Let's check more configurations [[link](https://wandb.ai/fuguan323-ethz/dense_to_moe_ablation/panel/l8i2031v8?nw=nwuserfuguan323)]
 
-
-
 # MoE Model Ablations
 
 Reference
 
 ## Theoratical Analysis
 
-We define something that we want to check. 
+We define something that we want to check.
 
 - **Expert Granularity:** it is a measurement of how fine-grained the MoE layer is. Defined as $G=\frac{d_{model}}{d_{expert}}$
 
-  1. The common trend is to have fine-grained MoE layer. For instance, DeepSeek-V3 has $G = 7168/2048 =3.5$ and Qwen-3.5 has $G = 4096/1024 =4$. Some works [[ling](https://arxiv.org/abs/2507.17702v4), ] also indicate that larger G is better, and the optimal G is between 4 - 6. 
+  1. The common trend is to have fine-grained MoE layer. For instance, DeepSeek-V3 has $G = 7168/2048 =3.5$ and Qwen-3.5 has $G = 4096/1024 =4$. Some works [[ling](https://arxiv.org/abs/2507.17702v4), ] also indicate that larger G is better, and the optimal G is between 4 - 6.
 
   2. But the problem is, a smaller G is better for our infrastructure. Large expert can enable a higher training throughput when activated parameter size is the same.
 
-## MoE Expert Granularity Ablations 
+## MoE Expert Granularity Ablations
 
 ### Setup
 
-- **MoE-7B-A1.5B** with varying expert granularity 
+- **MoE-7B-A1.5B** with varying expert granularity
   - Megatron cannot define shared expert number. In this case, corse-grained MoE will have a slightly large activated parameter size.
 
 ```
@@ -260,7 +254,7 @@ We define something that we want to check.
 
 - Red: G=4, Green: G=2, Blue: G=1
 - Single Expert weight.
-- Within 6.5B, corse-grained MoE has the lowest loss. It is against the common trend. 
+- Within 6.5B, corse-grained MoE has the lowest loss. It is against the common trend.
 
 <img src="./figs/moeloss0409-1.png" alt="exploss2" style="zoom:50%;" />
 
@@ -279,6 +273,3 @@ We define something that we want to check.
 
 - Use Adam instead of Muon.
 - GBS2048, LR3.5e-4
-
-
-

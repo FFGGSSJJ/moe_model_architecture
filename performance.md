@@ -15,7 +15,7 @@ Following Kimi-2, we can adopt FP8 storage for insensitive activations: Inputs o
 
 <img src="./figs/fp8act.png" alt="exploss2" style="zoom:50%;" />
 
-##### Implementation 
+##### Implementation
 
 - https://github.com/FFGGSSJJ/Megatron-LM/commit/f921902ab7489ca7f2c6abba77ca69aaf504b04a
 
@@ -56,7 +56,7 @@ Following Kimi-2, we can adopt FP8 storage for insensitive activations: Inputs o
 
 ## 2. Mock Router
 
-To build the idea of how well our framework can perform, we should simulate the scenario where tokens are routed to experts in a balance manner. 
+To build the idea of how well our framework can perform, we should simulate the scenario where tokens are routed to experts in a balance manner.
 
 ##### Design
 
@@ -72,11 +72,4 @@ Mock router is for performance inspection. The idea is to manipulate logit in ro
 
 - Throughput stays stable after 3 steps.
 
-
-
 ## 3. MoE Layer with Legacy GroupGEMM
-
-
-
-
-

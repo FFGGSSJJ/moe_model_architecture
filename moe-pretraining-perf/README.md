@@ -1,11 +1,7 @@
 # MoE Pre-training Performance
-
 ## Preliminary
-
-We need a target for the performance we expect to train a large MoE model. 
-
+We need a target for the performance we expect to train a large MoE model.
 Assume we are going to train a 670B MoE model, and according to data team, we have roughly 15T - 20T tokens for pre-training. Let's take 17.5T as the mean value:
-
 Given 4096 GPUs and 3 months:
 
 $\rm{TokenThroughput} = \frac{17.5e12}{4096 \cdot 90 \cdot 24 \cdot 3600} = 550\ tokens/s/gpu$
@@ -14,7 +10,7 @@ This is the expected average token thourghput in real training, and for optimal 
 
 $\rm{TokenThroughput'} = \frac{550}{0.8} = 687\ tokens/s/gpu$, where 0.8 is a penalty factor to compensate for the gap between real training throughput and balanced throughput in test. This value is observed in 30B-A3B training.
 
-Hence, we need **at least 687 tokens/s/gpu** in the performance tests for a 670B MoE model. 
+Hence, we need **at least 687 tokens/s/gpu** in the performance tests for a 670B MoE model.
 
 ## General Setup
 
@@ -40,7 +36,7 @@ Hence, we need **at least 687 tokens/s/gpu** in the performance tests for a 670B
 --overlap-param-gather
 ```
 
-**NOTE:** 
+**NOTE:**
 
 To guarantee that we align with the real training setup
 
@@ -76,10 +72,10 @@ TOPK=8
 - **Baseline**
   - `VPP_LAYOUT="Et\\|\\(tt\\|\\)*6,L"`
     - `--recompute-modules layernorm moe_act`
-  
+
   - MBS = 2, GBS = 1024, EP16-TP4-PP4, GPUs = 64
   - MBS = 2, GBS = 2048, EP16-TP4-PP4, GPUs = 128
-  
+
 - **Offloading**
   - `VPP_LAYOUT="Et\\|\\(tt\\|\\)*6,L"`
     - `--recompute-modules layernorm moe_act`
@@ -87,16 +83,84 @@ TOPK=8
   - MBS = 2, GBS = 1024, EP8-TP4-PP4, GPUs = 64
   - MBS = 2, GBS = 2048, EP8-TP4-PP4, GPUs = 128
 
+**Results with 64 GPUs**
+
+|                                                              | Throughput (tokens/s/gpu) | Memory* |    MFU    |
+| ------------------------------------------------------------ | :-----------------------: | :-----: | :-------: |
+| FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading              |           2560            |  77.5%  |   18.5%   |
+| **FP8 MoE + FP8 Dispatch + EP8-TP4 + EP Overlap + MoE Offloading** |     **2800 (+13.2%)**     |  77.4%  | **20.1%** |
+| FP8 MoE + EP16-TP4 + EP Overlap + MoE Offloading             |           2150            |  63.0%  |   15.7%   |
+| FP8 MoE + FP8 Dispatch + EP16-TP4 + EP Overlap + MoE Offloading |           2630            |  57.0%  |   19.0%   |
+| **BF16 + EP16-TP4 + EP Overlap**                             |         **2220**          |  72.4%  | **16.0%** |
+
+> ***NOTE:** memory is reported for the GPU with the highest memory pressure
+
+## Latent MoE
+
+**Model Config 1**
+
+```
+MODEL_NAME="moe_117b_a7b"
+
+# general config
+NUM_LAYERS=13
+HIDDEN_SIZE=7168
+FFN_HIDDEN_SIZE=14336
+NUM_ATTENTION_HEADS=32
+NUM_QUERY_GROUPS=8
+
+# moe layer config
+MOE_LAYER_FREQ='\([0]*3+[1]*10\)'
+MOE_FFN_HIDDEN_SIZE=2048
+MOE_SHARED_FFN_HIDDEN_SIZE=2048
+NUM_EXPERTS=256
+TOPK=8
+```
+
+**Model Config 2**
+
+```
+MODEL_NAME="moe_118b_a9b_latent"
+
+# general config
+NUM_LAYERS=13
+HIDDEN_SIZE=7168
+FFN_HIDDEN_SIZE=14336
+NUM_ATTENTION_HEADS=32
+NUM_QUERY_GROUPS=8
+
+# moe layer config
+MOE_LATENT_SIZE=2048
+MOE_LAYER_FREQ='\([0]*3+[1]*10\)'
+MOE_FFN_HIDDEN_SIZE=4096
+MOE_SHARED_FFN_HIDDEN_SIZE=8192
+NUM_EXPERTS=448
+TOPK=14
+```
+
+**Comparison**
+
+- Model 1 is normal MoE model. **Sparsity = 5.01%, Activated Ratio = 3.125%**
+- Model 2 is latent MoE model. **Sparsity = 6.32%, Activated Ratio = 3.125%**
+
+**Setup**
+
+- **Offloading**
+  - `VPP_LAYOUT="Et\\|\\(tt\\|\\)*6,L"`
+    - `--recompute-modules layernorm`
+  - MBS = 2, GBS = 1024, TP4-PP4, GPUs = 64
 
 **Results with 64 GPUs**
 
-|                                                     | **Throughput (tokens/s/gpu)** | **Memory*** |  **MFU**  |
-| --------------------------------------------------- | :---------------------------: | :---------: | :-------: |
-| **FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading** |           **2560**            |    77.5%    | **18.5%** |
-| FP8 MoE + EP16-TP4 + EP Overlap + MoE Offloading    |             2150              |    63.0%    |   15.7%   |
-| **BF16 + EP16-TP4 + EP Overlap**                    |           **2220**            |    72.4%    | **16.0%** |
+|                                                              | Throughput (tokens/s/gpu) | Memory* |  MFU  |
+| ------------------------------------------------------------ | :-----------------------: | :-----: | :---: |
+| **moe_117b_a7b**                                             |                           |         |       |
+| FP8 MoE + FP8 Dispatch + EP8-TP4 + EP Overlap + MoE Offloading |         **3240**          |  78.7%  | 16.0% |
+| FP8 MoE + FP8 Dispatch + EP16-TP4 + EP Overlap + MoE Offloading |           2785            |  61.7%  | 13.3% |
+| **moe_118b_a9b_latent**                                      |                           |         |       |
+| FP8 MoE + FP8 Dispatch + EP16-TP4 + EP Overlap + MoE Offloading |         **3700**          |  64.6%  | 21.3% |
 
-> ***NOTE:** memory is reported for the GPU with the highest memory pressure
+> To extend to a 670B-A37B model, we can roughly estimate by throughput / 4
 
 ## MoE-344B-A37B-1
 

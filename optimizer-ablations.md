@@ -31,7 +31,6 @@ $$
 \end{align*}
 $$
 
-
 ## Adam to Muon Ablations
 
 First we want to see how is Muon better than Adam.
@@ -62,14 +61,14 @@ Muon has different versions of implementations, where mainly the scaling factor 
 
 - Scale LR by 10x for 'shape_scaling'
 
-![moemuon_loss0408-03](./figs/moemuon_loss0408-03.png)
+![moemuon_loss0408-03](moemuon_loss0408-03.png)
 
 ## Muon on Split Expert Weights
 
 Muon performs differently depending on how the expert weights are allocated. In Megatron, we can either allocate experts as a big tensor: $(N_{le}\cdot d_{moe}, d_{model})$ or allocate separately: $N_{le} \cdot (d_{moe}, d_{model})$ where $N_{le}$ stands for number of local experts.
 
-- The first case makes the expert weight a large rectangular matrix: $\frac{N_e d_{moe}}{d_{model}} = kN_{le} $, which implies that the optimizer update can vary with EP size and it is not ideal.  
-- While the second case makes the weight more square: $\frac{d_{moe}}{d_{model}} = k$. 
+- The first case makes the expert weight a large rectangular matrix: $\frac{N_e d_{moe}}{d_{model}} = kN_{le} $, which implies that the optimizer update can vary with EP size and it is not ideal.
+- While the second case makes the weight more square: $\frac{d_{moe}}{d_{model}} = k$.
 
 As Muon uses orthogonalization on the while matrix, the split weights should be the correct scenario for Muon to work best. But we want to see if it indees makes a difference.
 
@@ -81,7 +80,7 @@ As Muon uses orthogonalization on the while matrix, the split weights should be 
   - Split (Red) vs. Single (Blue) Expert weight
 - **Observations**
   - Split (Red) and Single (Blue) have close LM loss. Split is slightly better.
-  - Single (Blue) has a lower load balancing loss. 
+  - Single (Blue) has a lower load balancing loss.
 
 <img src="./figs/moemuon0410-03.png" alt="exploss2" style="zoom:50%;" />
 
@@ -91,7 +90,7 @@ As Muon uses orthogonalization on the while matrix, the split weights should be 
 
 ## Mixed Muon + Adam Ablations
 
-Router weight is a rectangular weight of shape $(d_{model},N_e)$  with $d/N = [8-16]$. It has similar implications with split experts weight. 
+Router weight is a rectangular weight of shape $(d_{model},N_e)$  with $d/N = [8-16]$. It has similar implications with split experts weight.
 
 ### Exp 13/04/2026
 
@@ -103,9 +102,9 @@ Router weight is a rectangular weight of shape $(d_{model},N_e)$  with $d/N = [8
   - 4 nodes, EP2, GBS1280, L7.3e-4, Moonlight scaling
 - **Observations**
   - Both have almost identical LM loss
-  - With Adam, LBL loss is **<u>higher</u>**. 
-    - But with Adam, all the experts in each layer will be trained with similar number of tokens (more balanced in terms of trained tokens for experts). 
-    - Compared to use Adam for all, router with Adam has a much more stable LBL loss. 
+  - With Adam, LBL loss is **<u>higher</u>**.
+    - But with Adam, all the experts in each layer will be trained with similar number of tokens (more balanced in terms of trained tokens for experts).
+    - Compared to use Adam for all, router with Adam has a much more stable LBL loss.
 
 <img src="./figs/moemuon0410-04.png" alt="exploss2" style="zoom:50%;" />
 

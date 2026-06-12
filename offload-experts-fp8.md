@@ -1,8 +1,8 @@
 # Offload Experts with FP8 support in Megatron
 
-As we have built in offload-experts.md, it is verified to be practical offload experts into CPU RAM while hide the H2D loading with computation. 
+As we have built in offload-experts.md, it is verified to be practical offload experts into CPU RAM while hide the H2D loading with computation.
 
-In a next step, FP8 support should be included into the roadmap. 
+In a next step, FP8 support should be included into the roadmap.
 
 ## Theoratical Analysis
 
@@ -23,7 +23,7 @@ DeepSeek recipe:
 | (128, 128) quantization                              | ~2.73%         |
 | $x_{bf16} = a_{(1,128),fp8} \cdot b_{(128,128),fp8}$ | ~3.70%         |
 
-- **NOTE**: for (128, 1) quantization, these is an epsilon value that works as the min maximum boundary for quantization. By testing, for a tensor with super small values, disabling the epsilon values can help with quantization accuracy for both `per_token_cast_to_fp8` and `per_channel_cast_to_fp8`. However, disabling it in per_channel_cast will cause the training to fail. See details in implementation logs.  
+- **NOTE**: for (128, 1) quantization, these is an epsilon value that works as the min maximum boundary for quantization. By testing, for a tensor with super small values, disabling the epsilon values can help with quantization accuracy for both `per_token_cast_to_fp8` and `per_channel_cast_to_fp8`. However, disabling it in per_channel_cast will cause the training to fail. See details in implementation logs.
 
 | FP8 FWD + BWD                       | Relative Error |
 | :---------------------------------- | -------------- |
@@ -45,7 +45,7 @@ The same analysis can be applied. With half model weights (FP8) and double compu
 
 <img src="./figs/offloading/fp8/fp8.png" alt="exploss2" style="zoom:50%;" />
 
-FP8 implementations will be tricky. 
+FP8 implementations will be tricky.
 
 For now only TransformerEngine provides solution for FP8 computation in MoE and Attention layer, however to support offloading in MoE it will hard to hack TE code. It is a relatively easier approach to implement our own autograd function with FP8 support for MLP. The roadmap is:
 
@@ -82,7 +82,7 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
        - Megatron DDP handles the allocation of BF16 Parameter on CPU
        - `FP8ExpertsParameterManager` uses `.data_ptr()` to record expert parameter tensor storage.
      - **Quantized** after all-gather or before first micro-batch computation in each iteration. These are 2 different approaches. The first is the ideal one to avoid prolonging PP bubble, but difficult in practice. For now `FP8ExpertsParameterManager` takes the second approach.
-       1. Upon all-gather the BF16 tensors stay on GPU, and can be directly quantized into FP8 tensors before copying to CPU. Expert parameters are stored in the same bucket group, when the bucket group finishes param_sync, params in the group can be marked for quantization. 
+       1. Upon all-gather the BF16 tensors stay on GPU, and can be directly quantized into FP8 tensors before copying to CPU. Expert parameters are stored in the same bucket group, when the bucket group finishes param_sync, params in the group can be marked for quantization.
        2. Upon the first micro-batch computation, all BF16 parameters have been updated by optimizer. When they are first accessed, re-quantize them.
           - `FP8ExpertsParameterManager` should be aware of `is_first_mircobatch` to mark when requantization should happen.
           - `FP8ExpertsParameterManager` will handle quantization through an unified interface:
@@ -98,10 +98,10 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
   - [x] Forward and Backward pass with/without offloading, and unit tests `moe/experts_offloading_fp8_util.py`
   - [x] ExpertParamManager and In-place FP8 support `FP8ExpertsParameterManager`
 - [ ] **Checkpoint saving** (@fuguan)
-  - With `FP8ExpertsParameterManager`, the BF16 tensor storage is replaced with quantized FP8 parameter. In this case, we cannot directly save checkpoints using parameter tensor. 
+  - With `FP8ExpertsParameterManager`, the BF16 tensor storage is replaced with quantized FP8 parameter. In this case, we cannot directly save checkpoints using parameter tensor.
 - [x] **Support activation recomputation in MoE layer**
 - [ ] **Optimize CPU-bound operations in MoE layer**
-  - There are many tensor cumsum/split/view operations dedicated for FP8. These operations present high CPU-overhead and should be optimized. 
+  - There are many tensor cumsum/split/view operations dedicated for FP8. These operations present high CPU-overhead and should be optimized.
 - [ ] **Figure out why epsilon boundary is needed for `per_channel_cast_to_fp8` kernel**
   - See details below.
 - [ ] **Muon optimizer with separate expert update**
@@ -146,7 +146,7 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
 
 #### 11/05/2026 Loss Deviation Cont'd
 
-- Launch FP8 training: 
+- Launch FP8 training:
 
   | Training Setup                                 | Result   |
   | ---------------------------------------------- | -------- |
@@ -187,14 +187,14 @@ For now only TransformerEngine provides solution for FP8 computation in MoE and 
 
   <img src="./figs/offloading/fp8/grad_a_before_quant_75_histogram.png" alt="exploss2" style="zoom:50%;" />
 
-  - Most of grad_a tensors present **<u>super small</u>** values (mean <= 1e-12). 
+  - Most of grad_a tensors present **<u>super small</u>** values (mean <= 1e-12).
   - All the vectors will be quantized with the same scale factor (1e-4/448). The scaled values are too small to fall in the numerical range of fp8_e4m3.
 
-  After disabling epsilon value in `per_token_cast_to_fp8 (1, 128)`, the error of grad_x computation **<u>drops into normal range (~3.5%)</u>**. 
+  After disabling epsilon value in `per_token_cast_to_fp8 (1, 128)`, the error of grad_x computation **<u>drops into normal range (~3.5%)</u>**.
 
-  - **However**, in `per_channel_cast_to_fp8 (128, 1)` which is needed for weight gradient computation, the epsilon value of 1e-4 is kept. Because by disabling it the training loss will deviate at the beginning as shown in the fig. 
+  - **However**, in `per_channel_cast_to_fp8 (128, 1)` which is needed for weight gradient computation, the epsilon value of 1e-4 is kept. Because by disabling it the training loss will deviate at the beginning as shown in the fig.
 
-  - By testing, for a tensor with super small values, disabling the epsilon values can help with quantization accuracy for both `per_token_cast_to_fp8` and `per_channel_cast_to_fp8`. It is unknown why it degrades accuracy when removed from `per_channel_cast_to_fp8` during training. 
+  - By testing, for a tensor with super small values, disabling the epsilon values can help with quantization accuracy for both `per_token_cast_to_fp8` and `per_channel_cast_to_fp8`. It is unknown why it degrades accuracy when removed from `per_channel_cast_to_fp8` during training.
 
     <img src="./figs/offloading/fp8/loss-dev-0513.png" alt="exploss2" style="zoom:50%;" />
 

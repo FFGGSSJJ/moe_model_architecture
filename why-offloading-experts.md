@@ -1,6 +1,6 @@
 # When offloading experts matters?
 
-The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-node EP communication slow. At this stage, we have roughly **25GB/s** inter-node All-to-All bandwidth after NCCL env var fixes, which hits the boundary of our network for now. The points I want to clarify and discuss are: 
+The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-node EP communication slow. At this stage, we have roughly **25GB/s** inter-node All-to-All bandwidth after NCCL env var fixes, which hits the boundary of our network for now. The points I want to clarify and discuss are:
 
 - **Is 25GB/s good enough to train a large MoE model at scale?**
 - **Is offloading experts necessary?** (WIP)
@@ -28,7 +28,7 @@ The GH200 cluster we have suffers from slingshot bandwidth, which makes inter-no
 - **Is offloading experts necessary?**
 
   Probably yes if we want to go with a 700B MoE model. Large MoE models are constrained by memory at scale in our system due to the large number of in-flight micro-batches under VPP and large expert weights size under small EP (*As demonstrated in the 32-GPU experiments, increasing EP from 8 to 16 or 32 to reduce per-rank weight memory makes All-to-All communication the bottleneck and degrades the overall training performance*). Among them, offloading expert weights into CPU RAM has been proved to be a functional approach with reasonable training throughput.
-  
+
 - **Does offloading experts limit the model size?**
 
   TBU
@@ -57,14 +57,12 @@ And the following for parallel strategy:
 
 And we have the following formula:
 
-1. $M = \frac{mbs\cdot seq \cdot N_a}{N_e} \cdot \frac{DP}{EDP} = mbs\cdot seq \cdot \frac{EP}{TP}\cdot \frac{N_a}{N_e}$ 
-
+1. $M = \frac{mbs\cdot seq \cdot N_a}{N_e} \cdot \frac{DP}{EDP} = mbs\cdot seq \cdot \frac{EP}{TP}\cdot \frac{N_a}{N_e}$
 ## Expert Parallel
 
 In our hardware, we have the following ways of doing EP communication:
 
 1. **NCCL + All-Gather**
-
 2. **NCCL + All-to-All**
 
 A simple comparion between these 2 methods:
@@ -79,7 +77,6 @@ The math might not be rigorous, but for MoE training at large scale, All-Gather 
 ### Implications of Large EP
 
 As built in Preliminary section, the number of tokens assigned to each expert is related to EP. Hence the implications of large EP are:
-
 1. **Reduce** expert weight memory consumption $\rightarrow$ lower memory pressure
 2. **Increase** per-expert problem size $\rightarrow$ better hardware utilizations
 3. **Increase** EP communication size and range $\rightarrow$ longer A2A communication
@@ -92,11 +89,11 @@ And it works in cooperation with Interleaved-1F1B:
 
 <img src="./figs/offloading/ep-overlap-1f1b.png" alt="exploss2" style="zoom:50%;" />
 
-With properly fine-tuned scheduleing plan and carefully configured MoE setup, there are spaces to achieve ideal overlapping at the cost of (slightly) higher memory consumption. 
+With properly fine-tuned scheduleing plan and carefully configured MoE setup, there are spaces to achieve ideal overlapping at the cost of (slightly) higher memory consumption.
 
 ## EP Overlap vs. MoE Offloading
 
-EP overlap seems to be a nice approach to mitigate the high All-to-All latency. But what is the balanced point that can achieve a perfect overlap? 
+EP overlap seems to be a nice approach to mitigate the high All-to-All latency. But what is the balanced point that can achieve a perfect overlap?
 
 Before answering this question, it is essential to establish the foundational mechanisms of performance gain under a communication-computation overlapping scheme:
 
@@ -105,7 +102,7 @@ Before answering this question, it is essential to establish the foundational me
 
 ### Experiments Setup
 
-For this purpose, I configured a **46B-A4B** MoE model to test on **32-GPU** scale. 
+For this purpose, I configured a **46B-A4B** MoE model to test on **32-GPU** scale.
 
 ```yaml
 model='MoE-46B-A4B'
@@ -173,9 +170,9 @@ I launched different performance tests with varied setup:
 | BF16 + EP8-TP4 + EP Overlap             |           5100            |   97.0%   |   20.8%   |
 | BF16 + EP16-TP4 + EP Overlap            |             -             |     -     |     -     |
 
-> *NOTE: with FP8 MoE the computations are in FP8 for MLP and the activations in MoE layer are stored in FP8, which saves activation memory. 
+> *NOTE: with FP8 MoE the computations are in FP8 for MLP and the activations in MoE layer are stored in FP8, which saves activation memory.
 
-A fair point to argue is that PP is not introduced here, and the results might not be well extended to large scale with VPP. This will be discussed later. But for relative performance comparison, the above experiments and analysis should hold to large scale: 
+A fair point to argue is that PP is not introduced here, and the results might not be well extended to large scale with VPP. This will be discussed later. But for relative performance comparison, the above experiments and analysis should hold to large scale:
 
 - VPP is inter-device overlapping scheme, which does not interfere with EP overlap.
 - MoE offloading does not touch logics for VPP scheduling, and hence does not interfere with pipeline communications.
@@ -190,7 +187,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
 2. **Does larger EP help?**
 
-   - From the number: **NO**, EP16 presents significant performance degradation at this scale for all the models, and we should not expect it to perform well at larger scale. 
+   - From the number: **NO**, EP16 presents significant performance degradation at this scale for all the models, and we should not expect it to perform well at larger scale.
 
    - From the profile of **MoE-46B-A4B**
 
@@ -201,7 +198,7 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
 3. **When does Large EP + EP Overlap help?**
 
-   *It depends on the activation ratio of our MoE model.* 
+   *It depends on the activation ratio of our MoE model.*
 
 4. **Does FP8 help with EP Overlap?**
 
@@ -209,8 +206,8 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
    - From the profile of **MoE-46B-A4B**:
 
-     - EP8 (All-to-All across 2 nodes) is still **communication dominated**. FP8 brings computation accelerations and quantization overheads, which don't actually contribute to the end-to-end performance under the overlapping scenario. 
-     - The sub-optimal implementations with TransformerEngine bring unnecessary overheads, and for some unknown reasons TE implementation does not reduce memory usage. 
+     - EP8 (All-to-All across 2 nodes) is still **communication dominated**. FP8 brings computation accelerations and quantization overheads, which don't actually contribute to the end-to-end performance under the overlapping scenario.
+     - The sub-optimal implementations with TransformerEngine bring unnecessary overheads, and for some unknown reasons TE implementation does not reduce memory usage.
 
      <img src="./figs/offloading/ep-8-fp8.png" alt="exploss2" style="zoom:50%;" />
 
@@ -224,9 +221,9 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
 7. **Will smaller $N_a$ help?**
 
-   - With current model size and expert granularity, **smaller $N_a$ achieves the best performance at EP8**. 
+   - With current model size and expert granularity, **smaller $N_a$ achieves the best performance at EP8**.
 
-     - *We still need to verify if small activation ratio is what we want for model performance.* 
+     - *We still need to verify if small activation ratio is what we want for model performance.*
 
    - From the profile, **MoE-46B-A2B** has **perfect overlapping** when balanced
 
@@ -237,27 +234,27 @@ A fair point to argue is that PP is not introduced here, and the results might n
 8. **How to optimize for larger EP?**
 
    - Reduce communication volume when bandwidth is fixed
-     - NCCL has suppotted FP8 for non-reductive operations since v2.28 ([link](https://github.com/NVIDIA/nccl/releases/tag/v2.28.3-1)). However, whether FP8 p2p communication is available or stable is unknown.  
+     - NCCL has suppotted FP8 for non-reductive operations since v2.28 ([link](https://github.com/NVIDIA/nccl/releases/tag/v2.28.3-1)). However, whether FP8 p2p communication is available or stable is unknown.
    - Increase computation intensity such that it covers the communication cost
-     - Hard to configure a reasonable model. Increasing model size or $N_a$ will both increase computation size and communication volume. 
+     - Hard to configure a reasonable model. Increasing model size or $N_a$ will both increase computation size and communication volume.
 
 #### 2. Large EP + EP Overlap and MoE offloading
 
 1. **When does MoE offloading help?**
 
-   - As discussed in expert offloading, the load-computation overlap efficiency matters, and it only benefits with large actiation ratio. 
+   - As discussed in expert offloading, the load-computation overlap efficiency matters, and it only benefits with large actiation ratio.
 
-     - $\rm{Overlap Efficiency =}\frac{T_{gemm}}{T_{load}} = M \cdot\frac{450}{989e3}$, where $M$ is related to EP, TP and $N_a/N_e$ (activation ratio). 
+     - $\rm{Overlap Efficiency =}\frac{T_{gemm}}{T_{load}} = M \cdot\frac{450}{989e3}$, where $M$ is related to EP, TP and $N_a/N_e$ (activation ratio).
 
      - For **MoE-46B-A2B:** Offloading is slower than EP8 + EP Overlap under the same settings because of the small activation ratio. However, it **saves 12% of GPU memory while is only 6.8% slower.**
-     - For **MoE-46B-A4B:** Offloading is **6.3% faster** than EP8 + EP Overlap with 3.4% more memory consumption. 
-     - For **MoE-46B-A7B:** Offloading is **40% faster** than EP8 + EP Overlap. 
+     - For **MoE-46B-A4B:** Offloading is **6.3% faster** than EP8 + EP Overlap with 3.4% more memory consumption.
+     - For **MoE-46B-A7B:** Offloading is **40% faster** than EP8 + EP Overlap.
 
-   - Hence, **at this scale, EP8 + EP Overlap for MoE-46B-A2B is the best approach to go with**. 
+   - Hence, **at this scale, EP8 + EP Overlap for MoE-46B-A2B is the best approach to go with**.
 
 2. **Is EP8 + EP Overlap the answer for large MoE training?**
 
-   Probably no. **Enabling EP overlap at a large scale for large model is likely unfeasible with EP8, or even EP16 due to the GPU memory limitations. ** 
+   Probably no. **Enabling EP overlap at a large scale for large model is likely unfeasible with EP8, or even EP16 due to the GPU memory limitations. **
 
    - We need to clarify what are missing in the experiments above to extend it to larger scale:
 
@@ -325,10 +322,35 @@ A fair point to argue is that PP is not introduced here, and the results might n
 
 3. **Does MoE offloading limits model size compared to larger EP?**
 
-   - For this 32-GPU scale, No. Both offloading and EP8 + EP Overlap scheme **cost roughly the same amount of GPU memory**, implying roughly the same model size. 
+   - For this 32-GPU scale, No. Both offloading and EP8 + EP Overlap scheme **cost roughly the same amount of GPU memory**, implying roughly the same model size.
 
-   - Large scale experiment is necessary to verify it (WIP). 
+   - Large scale experiment is necessary to verify it (WIP).
 
-## 3-Node Pipeline Simulation
+## Large Scale Experiments with Offloading
 
-WIP
+**MoE-670B-A40B, 512 GPUs**
+
+|                                                        | **Throughput (tokens/s/gpu)** | TFLOP/s/GPU | **Memory** |  **MFU**  |
+| ------------------------------------------------------ | :---------------------------: | :---------: | :--------: | :-------: |
+| FP8 MoE + EP8-TP4 + EP Overlap + MoE Offloading        |              694              |     189     |   67.8%    |   18.7%   |
+| FP8 MoE* + EP16-TP4 + EP Overlap + MoE Offloading      |            **772**            |   **200**   | **67.0%**  | **20.0%** |
+| FP8 MoE + EP16-TP4 + EP Overlap + MoE Offloading^{1} |              785              |     202     |   74.5%    |   20.4%   |
+| BF16 + EP8-TP4 + EP Overlap                            |               -               |      -      |    OOM     |     -     |
+| BF16 + EP16-TP4 + EP Overlap                           |               -               |      -      |    OOM     |     -     |
+| BF16 + EP32-TP4 + EP Overlap                           |              627              |     152     |   81.2%    |   15.4%   |
+| FP8* + EP16-TP4 + EP Overlap                           |               -               |      -      |    OOM     |     -     |
+| FP8 + EP32-TP4 + EP Overlap                            |              670              |     168     |   80.0%    |   17.0%   |
+
+> $^1$: this setup disable an activation recomputation in MoE layer
+>
+> *NOTE: FP8 MoE only applies FP8 on MoE layer with offloading support.
+>
+> *NOTE: Transformer Engine FP8 implementations does not save memory consumption for some reason.
+
+**Analysis for EP16 + EP Overlap + Offloading on MoE-670B-A30B:**
+
+<img src="./figs/offloading/moe-670b-ep16.png" alt="exploss2" style="zoom:50%;" />
+
+- Attention forward contains many discrete kernels due to router and permutations
+- MLP dgrad has recomputations, and load-computation overlap is not good
+- Attention backward does not overlap with combine nicely

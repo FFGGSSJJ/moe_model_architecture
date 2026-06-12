@@ -3,7 +3,7 @@
 - **Hardware**: NVIDIA GH200 120GB
 - **Date**: 2026-05-28
 - **NUMA binding**: `numactl --cpunodebind=0 --membind=0`
-- **Config parameters**: 
+- **Config parameters**:
     - C=CHUNK_SIZE (experts per transfer)
     - H=HIDDEN_SIZE
     - FFN=MOE_FFN_HIDDEN_SIZE

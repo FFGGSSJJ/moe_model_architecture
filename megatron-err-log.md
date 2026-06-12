@@ -4,7 +4,7 @@
 
 ## 1. Checkpoint Loading Error
 
-- **Problems:** 
+- **Problems:**
   There are 2 problems
   1. When `--precision-aware-optimizer` is enabled, this version of Megatron will save Optimizer States with an additional bool field `padding`. However in `megatron/core/optimizer/distrib_optimizer.py`, the function `_set_main_param_and_optimizer_states` expects `tensors` to contains only 3 fields. But what the saved tensor has an extra field called `padding` which is a bool type, and it causes error in when calling `set_scaled_state` because `padding` is not a tensor.
   2. When loading optimizer states from checkpoints, the memory cost is unexpectedly large and could cause OOM.
@@ -17,8 +17,8 @@
 
 - **Problems**:
   1. `--precision-aware-optimizer` + `--dist-ckpt-optim-fully-reshardable` is not compatible. If checkpoints have to be fully reshardable, use full precision optimizer. Otherwise, there will be loading error when loading a fully reshardable checkpoint with TE.
-  2. `--dist-ckpt-optim-fully-reshardable`  may cause OOM during checkpoints saving if the memory pressure is high. By investigation, the OOM error is most likely to happen on CPU side as there is a `all-gather` to collect parameter on DP rank 0 for fully reshardable checkpoints. 
-  3. `args.tokens_so_far` is not initialized in `training.py` if the training starts from scratch. 
+  2. `--dist-ckpt-optim-fully-reshardable`  may cause OOM during checkpoints saving if the memory pressure is high. By investigation, the OOM error is most likely to happen on CPU side as there is a `all-gather` to collect parameter on DP rank 0 for fully reshardable checkpoints.
+  3. `args.tokens_so_far` is not initialized in `training.py` if the training starts from scratch.
 
 ## 3. Mysterious Error
 

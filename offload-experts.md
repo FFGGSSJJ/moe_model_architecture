@@ -2,7 +2,7 @@
 
 The GH200 cluster we have suffers from low All-to-All bandwidth, which makes inter-node EP communication impractical. If we want to train a large MoE model efficiently at large scale, we have to figure out a way to fill the model into GPUs under EP=4 constraint.
 
-GH200 has 450GB/s H2D bandwidth, which makes it possible to offload experts into CPU RAM while hide the H2D loading with computation. 
+GH200 has 450GB/s H2D bandwidth, which makes it possible to offload experts into CPU RAM while hide the H2D loading with computation.
 
 ## Theoratical Analysis
 
@@ -26,7 +26,7 @@ And the following for parallel strategy:
 
 ### GPU RAM Analysis for MoE Layer
 
-This part of analysis should provide guidance on the model size we are going to have. 
+This part of analysis should provide guidance on the model size we are going to have.
 
 - ${\rm{Mem}}_{e} = N_e \cdot H h_e\cdot 3 \cdot L / \rm{EP} \cdot 2Byte$
 - ${\rm{Mem}}_{grad} = N_e \cdot H h_e\cdot 3 \cdot L / \rm{EP} \cdot 4\rm{Byte}$
@@ -60,10 +60,10 @@ To get **perfect overlap efficiency of 100%:**
     FC1 Latency: 2.232 ms | Bandwidth: 421.00 GB/s | MBU: 93.56%
     FC2 Latency: 1.119 ms | Bandwidth: 419.85 GB/s | MBU: 93.30%
   [GroupedGEMM FWD] 16 experts, 1465 tokens/expert, (7168, 4096)
-    Shape of A: (23440, 7168), Shape of B: (16, 7168, 4096), 
+    Shape of A: (23440, 7168), Shape of B: (16, 7168, 4096),
     FC1 Latency: 2.263 ms | TFLOPS: 608.30 | MFU: 61.51%
     FC2 Latency: 1.285 ms | TFLOPS: 535.66 | MFU: 54.16%
-  
+
   Exposed H2D Latency: FC1=-0.031 ms | FC2=-0.166 ms
   Overlap efficiency: FC1=101.39% | FC2=114.83%
   ``````
@@ -73,7 +73,7 @@ To get **perfect overlap efficiency of 100%:**
 We need to get **$M$ <u>at least larger than 1000 tokens</u>**. Larger $M$ means better overlapping efficiency. We define $M$ in a balanced scenario as:
 
 - $k = \frac{DP}{EDP} = \frac{EP}{TP}$
-- $M = \frac{mbs\cdot seq \cdot N_a}{N_e} \cdot \frac{DP}{EDP} = mbs\cdot seq \cdot \frac{EP}{TP}\cdot \frac{N_a}{N_e}$ 
+- $M = \frac{mbs\cdot seq \cdot N_a}{N_e} \cdot \frac{DP}{EDP} = mbs\cdot seq \cdot \frac{EP}{TP}\cdot \frac{N_a}{N_e}$
 
 We assume $mbs=2$ and $seq=4096$, this makes the balance token number **only relate to EP, TP and activated ratio**. If we need M >= 1000:
 
@@ -81,7 +81,7 @@ We assume $mbs=2$ and $seq=4096$, this makes the balance token number **only rel
 
 - if TP=2, EP=4, $M = 8192 \cdot 2 \cdot R_a \Rightarrow R_a \geq 6$%
 
-The above discussion is built on the assumption that we need 100% overlap efficiency. 
+The above discussion is built on the assumption that we need 100% overlap efficiency.
 
 ## Implementation in Megatron
 
@@ -116,10 +116,10 @@ The majority of changes happened in Megatron to support expert weight offloading
 - [ ] Support checkpoint saving/loading with `torch_dist` with cpu expert weights (@fuguan)
 
   - [x] `fully_parallel_save`
-    1. Saving seems to be fine, no data communication needed. Parameter data that does not need to be saved by current rank will be simply discarded. 
+    1. Saving seems to be fine, no data communication needed. Parameter data that does not need to be saved by current rank will be simply discarded.
 
   - [ ] **`async_save`**
-    1. async_save might cause data race: param -> copy to cpu tensor -> async save -> training. If param is already cpu tensor, the copy will not happen. The param data could be polluted by training. 
+    1. async_save might cause data race: param -> copy to cpu tensor -> async save -> training. If param is already cpu tensor, the copy will not happen. The param data could be polluted by training.
        - **<u>Solution</u>**: allocate a new CPU tensor and copy param data into it.
 
   - [x] `fully_parallel_load`
@@ -159,11 +159,11 @@ TBD
 
 ## Verification of Implementation
 
-There will be mainly 2 part of verification: correctness and performance. 
+There will be mainly 2 part of verification: correctness and performance.
 
 ### Correctness Verification
 
-We use MoE-7B-A1.5B to verify the correctness. 
+We use MoE-7B-A1.5B to verify the correctness.
 
 - Within 15B tokens, the LM loss does not deviate from TE baseline.
 - With deterministic_mode, produce identical LM loss value compared to legacy_groupgemm baseline.
@@ -175,7 +175,7 @@ As we have built previously, the overlapping efficiency is mainly related to the
 #### 1. MoE-40B-A4B
 
 - N_e = 448, N_a = 28, R_a = 6.25%, H = 4096, h_4 = 2048
-- The purpose of this model is to saturate GPU RAM with TP4-EP4 + Expert Offloading on 32 GPUs. 
+- The purpose of this model is to saturate GPU RAM with TP4-EP4 + Expert Offloading on 32 GPUs.
   - Overlap Efficiency ~= 40%
 - We expect that **EP4 + Expert Offloading to outperform EP8.**
 
@@ -210,4 +210,3 @@ As we have built previously, the overlapping efficiency is mainly related to the
 | ----------- | :----------------: | :---------------: | :-----------------------: | :----------------------: |
 | MoE-40B-A4B |        OOM         | 7000 tokens/s/gpu |     8700 tokens/s/gpu     |    9800 tokens/s/gpu     |
 | MoE-27B-A3B | 18100 tokens/s/gpu |         -         |    17000 tokens/s/gpu     |    17600 tokens/s/gpu    |
-
