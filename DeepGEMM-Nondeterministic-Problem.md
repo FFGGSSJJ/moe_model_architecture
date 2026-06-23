@@ -10,12 +10,12 @@ The offloading FP8 MoE backward pass **occasionally** produces a catastrophicall
 ## How I noticed it
 
 During the correctness verification tests of `OffloadingExpertsFP8GroupedSwiMLP` (in `megatron/core/transformer/moe/experts_offloading_fp8_util.py`), I noticed abnormal grad_norm value at the beginning of the training:
-![[grad_norm_fp8.png]]
+![[./figs/grad_norm_fp8.png]]
 - This is 2 training trace using FP8 (red) and BF16 (blue). FP8 presents large grad_norm (>200) in ~4 steps at the beginning of training. 
 While for the LM loss at the beginning, it presents a small deviation between step 20 - step 90. 
-![[lm_loss_fp8_deepgemm.png]]
+![[./figs/lm_loss_fp8_deepgemm.png]]
 In the long run, however, both LM loss and grad_norm are stable and converging:
-![[lm_loss_fp8_deepgemm_30b.png]]
+![[./figs/lm_loss_fp8_deepgemm_30b.png]]
 This abnormal grad_norm at the beginning appears in both AdamW and Muon, and also in both SwiGLU and PolyNorm.
 
 ## Trace the problem
@@ -27,17 +27,17 @@ To narrow down the cause, I did multiple experiments at different scale, and rul
 
 And finally converged to:
 - **FP8 Down-Linear Weight Backward computation**, i.e. W2 grad computation
-![[fp8.png]]
+![[./figs/offloading/fp8/fp8.png]]
 The computation of W2 Computation can be simplified as:
 $$ dW_2 = dy.T \cdot act(a).T$$
 where both $dy$ and $act(a)$ will be quantized in column direction (128, 1), implemented as `per_channel_cast_to_fp8` in `fp8_jit.py`. The per-channel quantization is explained as:
-![[per_channel_quant.png]]
+![[./figs/offloading/fp8/per_channel_quant.png]]
 
 Hence, in the first place I launched a few tests to observe the data distribution of $dy$ and $act(a)$
  before quantization to see if there are abnormal logits, and designed unit tests for the wgrad computation under observed data distribution
  - Both tensors follow the normal distribution, and quantization error is around 3.2%, which falls in the correct range.
  - The max logit in both tensors during the training are normal across all layers.
-	![[max_logit_moe.png]]
+	![[./figs/max_logit_moe.png]]
  
  - Local unit tests following the observed data distribution are completely correct. All passed without numerical problem.
 However, the grad_w2 computed during the training is problematic, by computing the w2 weight gradient twice: once via the FP8 grouped GEMM and once via a BF16 reference, the two results present super large difference (L2 norm). So I dumped all the tensors when abnormal L2 norm occurs to reproduce the error in a small test.
