@@ -10,6 +10,7 @@ The offloading FP8 MoE backward pass **occasionally** produces a catastrophicall
 ## How I noticed it
 
 During the correctness verification tests of `OffloadingExpertsFP8GroupedSwiMLP` (in `megatron/core/transformer/moe/experts_offloading_fp8_util.py`), I noticed abnormal grad_norm value at the beginning of the training:
+
 ![[./figs/grad_norm_fp8.png]]
 - This is 2 training trace using FP8 (red) and BF16 (blue). FP8 presents large grad_norm (>200) in ~4 steps at the beginning of training. 
 While for the LM loss at the beginning, it presents a small deviation between step 20 - step 90. 
