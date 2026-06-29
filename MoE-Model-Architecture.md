@@ -1,6 +1,6 @@
 ## 1. MoE Model Architecture
 After calculations and experiments, I propose the following 2 draft model configs for Apertus-v2:
-1. **Non-latent: MoE-650B-A42B**
+1. **Non-latent: MoE-665B-A37B**
 ```yaml
 	# general config
 	NUM_LAYERS=61
@@ -74,7 +74,7 @@ Both models are anchored on DeepSeek-V3 for total parameter size (~630B) and act
 	| Model                        | GPUs | Setup        | Tokens/s/GPU | MFU   |
 	| ---------------------------- | ---- | ------------ | ------------ | ----- |
 	| **Latent-MoE-650B-A43B-29L** | 256  | EP16-PP8-TP4 | ~1690         | 25.3% |
-	| **MoE-650B-A42B-29L**                    | 256  | EP16-PP8-TP4 | ~1720         |    26.0%   |
+	| **MoE-665B-A37B-29L**                    | 256  | EP16-PP8-TP4 | ~1720         |    26.0%   |
 	
 	For the full size model, it should be roughly half of the throughput, which gives **~800 tokens/s/gpu** in balanced scenario.
 ## 2. Explanations
