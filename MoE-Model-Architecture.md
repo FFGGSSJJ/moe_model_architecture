@@ -17,18 +17,18 @@ After calculations and experiments, I propose the following 2 draft model config
 
 2. **Latent: MoE-650B-A43B**
 	```yaml
-		# general config
-		NUM_LAYERS=61
-		HIDDEN_SIZE=8192
-		FFN_HIDDEN_SIZE=14336
-		
-		# moe layer config
-		MOE_LAYER_FREQ='[0,1,0,1,0,1,0,1]+[1]*53'
-		MOE_LATENT_SIZE=4096
-		MOE_FFN_HIDDEN_SIZE=3072
-		MOE_SHARED_FFN_HIDDEN_SIZE=6144
-		NUM_EXPERTS=288
-		TOPK=8
+# general config
+NUM_LAYERS=61
+HIDDEN_SIZE=8192
+FFN_HIDDEN_SIZE=14336
+
+# moe layer config
+MOE_LAYER_FREQ='[0,1,0,1,0,1,0,1]+[1]*53'
+MOE_LATENT_SIZE=4096
+MOE_FFN_HIDDEN_SIZE=3072
+MOE_SHARED_FFN_HIDDEN_SIZE=6144
+NUM_EXPERTS=288
+TOPK=8
 	```
 
 > [!NOTE]
@@ -169,7 +169,9 @@ Compared to the dense model, Mixtrue-of-Expert model introduces extra Expert Par
 Hence, one of the key points for our MoE model is the **'sweet point' between MoE communication and computation**. It is necessary to make them balanced.
 
 For communication, it is about the message size for dispatch and combine. For computation, it is about the problem size in MoE layer. Based on the preliminary, we can have:
+
 $$ \text{MoE Communication} \propto \{H |H_{lat}, N_a\}$$
+
 $$\text{MoE Computation} \propto \{H|H_{lat},h_e,N_e,\frac{N_a}{N_e}\}$$
 With the calculations in 2.1, we can then design:
 - memory estimator to estimate memory consumption
@@ -193,6 +195,7 @@ The purpose of the micro-benchmark is to simulate the overlap pipeline in traini
 <img src="./figs/architecture/ep_comp_2a2a_fp8_forward_wgrad_ep16.png" alt="exploss2" style="zoom:50%;" />
 <img src="./figs/architecture/ep_comp_2a2a_fp8_forward_wgrad_ep32.png" alt="exploss2" style="zoom:50%;" />
 The conclusions we can derive from the micro-benchmark:
+
 - Hidden size is not the primary factor for MoE layer computational and communicational costs.
 - Small expert granularity ($he\in\{1024, 2048, 2560\}$) is not optimal for our cluster, which will be communication-bottlenecked for sure. Hence, DeepSeek-V3 architecture is not optimal for us.
 - Latent MoE $H\in \{2048, 4096\}$ will turn the model into computation-bottlenecked in our cluster, which is what we want.
