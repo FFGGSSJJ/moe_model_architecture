@@ -154,6 +154,7 @@ I first define symbols that are necessary to build context in MoE model.
 4. Per-device memory cost model
 
 	$$
+	
 	\begin{aligned}
 	&\text{Memory} = W + G + O + A\\
 	&W = W_{dense} + W'_{moe} && \text{(bf16 weights, TP+EP+PP)}\\
@@ -161,6 +162,7 @@ I first define symbols that are necessary to build context in MoE model.
 	&O = (1+\omega)\Big(\tfrac{2W_{dense}}{DP}+\tfrac{2W_{moe}}{EDP}\Big) && \text{(fp32 optimizer states, ZeRO‑1)}\\
 	&A = \sum_{c\in\text{chunks}(r)} n_c\big(\delta_c A_{\text{dense}}+\mu_c A_{\text{moe}}\big)+Z_r && \text{(in‑flight–microbatches)}
 	\end{aligned}
+	
 	$$
 
 ### 2.2 Trade-offs
