@@ -146,17 +146,25 @@ I first define symbols that are necessary to build context in MoE model.
 
 **Pre-build:**
 1. Balanced tokens-per-expert:
+	
 	$$M = \frac{mbs\cdot seq\cdot N_a}{N_e}\cdot\frac{DP}{EDP} = mbs\cdot seq\cdot\frac{EP}{TP}\cdot\frac{N_a}{N_e}\quad\text{tokens}$$
 2. Balanced per-device token payload
+	
 	$$\tau \;\equiv\; \underbrace{\frac{N_e}{EP}}_{\text{experts/rank}}\cdot\, M \;=\; \frac{mbs\cdot seq\cdot N_a}{TP}\quad\text{tokens}$$
 3. Balanced dispatch communication volume
+	
 	$$V_\text{disp} = \underbrace{2\cdot mbs \cdot seq \cdot b \cdot}_{\text{constant}} \text{min}(H,H_{lat})\cdot\frac{N_a (EP-1)}{TP \cdot EP}\quad\text{bytes}$$
 4. Per-device memory cost model
 
+	
 	$$\text{Memory} = W + G + O + A$$
+	
 	$$W = W_{dense} + W'_{moe} \quad  \text{(bf16 weights, TP+EP+PP)}$$
+	
 	$$G = 2(W_{dense}+W_{moe}) \quad  \text{(fp32 main grad, unsharded)}$$
+	
 	$$O = (1+\omega)\Big(\tfrac{2W_{dense}}{DP}+\tfrac{2W_{moe}}{EDP}\Big) \quad \text{(fp32 optimizer states, ZeRO‑1)}$$
+	
 	$$A = \sum_{c\in\text{chunks}(r)} n_c\big(\delta_c A_{\text{dense}}+\mu_c A_{\text{moe}}\big)+Z_r \quad \text{(in‑flight–microbatches)}$$
 	
 
