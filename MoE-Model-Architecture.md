@@ -153,7 +153,7 @@ I first define symbols that are necessary to build context in MoE model.
 	$$\tau \equiv \underbrace{\frac{N_e}{EP}}_{\text{experts/rank}}\cdot M = \frac{mbs\cdot seq\cdot N_a}{TP}\quad\text{tokens}$$
 3. Balanced dispatch communication volume
 	
-	$$V_\text{disp} = \underbrace{2\cdot mbs \cdot seq \cdot b \cdot}_{\text{constant}} $$
+	$$V_\text{disp} = \underbrace{2\cdot mbs \cdot seq \cdot b}_{\text{constant}} \cdot \text{min}(H,H_{lat}) \cdot \frac{N_a\cdot(EP-1)}{TP \cdot EP}\quad \text{bytes}$$
 4. Per-device memory cost model
 
 	
