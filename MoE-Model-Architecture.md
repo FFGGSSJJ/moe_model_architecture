@@ -152,6 +152,7 @@ I first define symbols that are necessary to build context in MoE model.
 3. Balanced dispatch communication volume
 	$$V_\text{disp} = \underbrace{2\cdot mbs \cdot seq \cdot b \cdot}_{\text{constant}} \text{min}(H,H_{lat})\cdot\frac{N_a (EP-1)}{TP \cdot EP}\quad\text{bytes}$$
 4. Per-device memory cost model
+
 	$$
 	\begin{aligned}
 	&\text{Memory} = W + G + O + A\\
