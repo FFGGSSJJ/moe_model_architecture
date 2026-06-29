@@ -1,35 +1,35 @@
 ## 1. MoE Model Architecture
 After calculations and experiments, I propose the following 2 draft model configs for Apertus-v2:
 1. **Non-latent: MoE-650B-A42B**
-	```yaml
-		# general config
-		NUM_LAYERS=61
-		HIDDEN_SIZE=7168
-		FFN_HIDDEN_SIZE=14336
-		
-		# moe layer config
-		MOE_LAYER_FREQ='[0,1,0,1,0,1,0,1]+[1]*53'
-		MOE_FFN_HIDDEN_SIZE=4096
-		MOE_SHARED_FFN_HIDDEN_SIZE=4096
-		NUM_EXPERTS=128
-		TOPK=4
-	```
+```yaml
+	# general config
+	NUM_LAYERS=61
+	HIDDEN_SIZE=7168
+	FFN_HIDDEN_SIZE=14336
+	
+	# moe layer config
+	MOE_LAYER_FREQ='[0,1,0,1,0,1,0,1]+[1]*53'
+	MOE_FFN_HIDDEN_SIZE=4096
+	MOE_SHARED_FFN_HIDDEN_SIZE=4096
+	NUM_EXPERTS=128
+	TOPK=4
+```
 
 2. **Latent: MoE-650B-A43B**
-	```yaml
-# general config
-NUM_LAYERS=61
-HIDDEN_SIZE=8192
-FFN_HIDDEN_SIZE=14336
-
-# moe layer config
-MOE_LAYER_FREQ='[0,1,0,1,0,1,0,1]+[1]*53'
-MOE_LATENT_SIZE=4096
-MOE_FFN_HIDDEN_SIZE=3072
-MOE_SHARED_FFN_HIDDEN_SIZE=6144
-NUM_EXPERTS=288
-TOPK=8
-	```
+```yaml
+	# general config
+	NUM_LAYERS=61
+	HIDDEN_SIZE=8192
+	FFN_HIDDEN_SIZE=14336
+	
+	# moe layer config
+	MOE_LAYER_FREQ='[0,1,0,1,0,1,0,1]+[1]*53'
+	MOE_LATENT_SIZE=4096
+	MOE_FFN_HIDDEN_SIZE=3072
+	MOE_SHARED_FFN_HIDDEN_SIZE=6144
+	NUM_EXPERTS=288
+	TOPK=8
+```
 
 > [!NOTE]
 > **Between these 2 models**: 
