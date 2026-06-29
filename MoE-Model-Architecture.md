@@ -1,6 +1,8 @@
 ## 1. MoE Model Architecture
 After calculations and experiments, I propose the following 2 draft model configs for Apertus-v2:
 1. **Non-latent: MoE-665B-A37B**
+	- Activated Ratio: 4 / 128 = 3.125%
+	- Sparsity: 5.68%
 ```yaml
 	# general config
 	NUM_LAYERS=61
@@ -16,6 +18,8 @@ After calculations and experiments, I propose the following 2 draft model config
 ```
 
 2. **Latent: MoE-650B-A43B**
+	- Activated Ratio: 8 / 288 = 2.78%
+	- Sparsity: 6.71%
 ```yaml
 	# general config
 	NUM_LAYERS=61
