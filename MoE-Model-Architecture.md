@@ -153,17 +153,15 @@ I first define symbols that are necessary to build context in MoE model.
 	$$V_\text{disp} = \underbrace{2\cdot mbs \cdot seq \cdot b \cdot}_{\text{constant}} \text{min}(H,H_{lat})\cdot\frac{N_a (EP-1)}{TP \cdot EP}\quad\text{bytes}$$
 4. Per-device memory cost model
 
-	$$
+	$$\begin{aligned}
 	
-	\begin{aligned}
 	&\text{Memory} = W + G + O + A\\
 	&W = W_{dense} + W'_{moe} && \text{(bf16 weights, TP+EP+PP)}\\
 	&G = 2(W_{dense}+W_{moe}) && \text{(fp32 main grad, unsharded)}\\
 	&O = (1+\omega)\Big(\tfrac{2W_{dense}}{DP}+\tfrac{2W_{moe}}{EDP}\Big) && \text{(fp32 optimizer states, ZeRO‑1)}\\
 	&A = \sum_{c\in\text{chunks}(r)} n_c\big(\delta_c A_{\text{dense}}+\mu_c A_{\text{moe}}\big)+Z_r && \text{(in‑flight–microbatches)}
-	\end{aligned}
 	
-	$$
+	\end{aligned}$$
 
 ### 2.2 Trade-offs
 Compared to the dense model, Mixtrue-of-Expert model introduces extra Expert Parallel communications which are slow in our training infrastructure. During the training, we can mitigate or hide the communication latency with low precisions and computations:
